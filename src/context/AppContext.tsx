@@ -6,6 +6,7 @@ import { INITIAL_ORDERS } from '../data/orders';
 
 const HISTORY_KEY = 'agroscan:history';
 const USER_KEY = 'agroscan:user';
+const ORDERS_KEY = 'agroscan:orders';
 
 interface AppContextValue {
   user: User | null;
@@ -18,6 +19,7 @@ interface AppContextValue {
 
   orders: ServiceOrder[];
   updateOrderStatus: (id: string, status: ServiceOrder['status']) => void;
+  addOrder: (order: Omit<ServiceOrder, 'id' | 'code' | 'status' | 'date'>) => void;
 
   lastSync: number;
   isSyncing: boolean;
@@ -37,12 +39,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [storedUser, storedHistory] = await Promise.all([
+        const [storedUser, storedHistory, storedOrders] = await Promise.all([
           AsyncStorage.getItem(USER_KEY),
           AsyncStorage.getItem(HISTORY_KEY),
+          AsyncStorage.getItem(ORDERS_KEY),
         ]);
         if (storedUser) setUser(JSON.parse(storedUser));
         if (storedHistory) setHistory(JSON.parse(storedHistory));
+        if (storedOrders) setOrders(JSON.parse(storedOrders));
       } catch {
         // se o storage falhar, seguimos com os dados padrão em memória
       } finally {
@@ -70,8 +74,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const persistOrders = (next: ServiceOrder[]) => {
+    AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(next)).catch(() => {});
+    return next;
+  };
+
   const updateOrderStatus = useCallback((id: string, status: ServiceOrder['status']) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    setOrders((prev) => persistOrders(prev.map((o) => (o.id === id ? { ...o, status } : o))));
+  }, []);
+
+  const addOrder = useCallback((order: Omit<ServiceOrder, 'id' | 'code' | 'status' | 'date'>) => {
+    setOrders((prev) => {
+      const seq = 100 + prev.length + 1;
+      const newOrder: ServiceOrder = {
+        ...order,
+        id: `os-${Date.now()}`,
+        code: `OS-${new Date().getFullYear()}-${seq}`,
+        status: 'pending',
+        date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      };
+      return persistOrders([newOrder, ...prev]);
+    });
   }, []);
 
   const syncNow = useCallback(async () => {
@@ -91,11 +114,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addDetection,
       orders,
       updateOrderStatus,
+      addOrder,
       lastSync,
       isSyncing,
       syncNow,
     }),
-    [user, isLoading, login, logout, history, addDetection, orders, updateOrderStatus, lastSync, isSyncing, syncNow]
+    [user, isLoading, login, logout, history, addDetection, orders, updateOrderStatus, addOrder, lastSync, isSyncing, syncNow]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
