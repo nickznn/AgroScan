@@ -1,25 +1,23 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DetectionResult, ServiceOrder, User } from '../types';
-import { SEED_HISTORY } from '../data/history';
-import { INITIAL_ORDERS } from '../data/orders';
-
-const HISTORY_KEY = 'agroscan:history';
-const USER_KEY = 'agroscan:user';
-const ORDERS_KEY = 'agroscan:orders';
+import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../types';
+import * as api from '../api/client';
 
 interface AppContextValue {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, farmName: string) => Promise<void>;
+  authError: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, farmName: string) => Promise<void>;
   logout: () => Promise<void>;
 
   history: DetectionResult[];
-  addDetection: (result: DetectionResult) => void;
+  addDetection: (photoUri: string | null) => Promise<DetectionResult>;
 
   orders: ServiceOrder[];
-  updateOrderStatus: (id: string, status: ServiceOrder['status']) => void;
-  addOrder: (order: Omit<ServiceOrder, 'id' | 'code' | 'status' | 'date'>) => void;
+  updateOrderStatus: (id: string, status: ServiceOrder['status']) => Promise<void>;
+  addOrder: (order: { product: string; sector: string; crop: Crop }) => Promise<void>;
+
+  sectors: Sector[];
 
   lastSync: number;
   isSyncing: boolean;
@@ -31,95 +29,141 @@ const AppContext = createContext<AppContextValue | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [history, setHistory] = useState<DetectionResult[]>(SEED_HISTORY);
-  const [orders, setOrders] = useState<ServiceOrder[]>(INITIAL_ORDERS);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [history, setHistory] = useState<DetectionResult[]>([]);
+  const [orders, setOrders] = useState<ServiceOrder[]>([]);
+  const [sectors, setSectors] = useState<Sector[]>([]);
   const [lastSync, setLastSync] = useState<number>(Date.now());
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const loadAllData = useCallback(async () => {
+    const [nextHistory, nextOrders, nextSectors] = await Promise.all([
+      api.fetchDetections(),
+      api.fetchOrders(),
+      api.fetchSectors(),
+    ]);
+    setHistory(nextHistory);
+    setOrders(nextOrders);
+    setSectors(nextSectors);
+    setLastSync(Date.now());
+  }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const [storedUser, storedHistory, storedOrders] = await Promise.all([
-          AsyncStorage.getItem(USER_KEY),
-          AsyncStorage.getItem(HISTORY_KEY),
-          AsyncStorage.getItem(ORDERS_KEY),
-        ]);
-        if (storedUser) setUser(JSON.parse(storedUser));
-        if (storedHistory) setHistory(JSON.parse(storedHistory));
-        if (storedOrders) setOrders(JSON.parse(storedOrders));
+        const token = await api.getToken();
+        if (token) {
+          const me = await api.fetchMe();
+          setUser(me);
+          await loadAllData();
+        }
       } catch {
-        // se o storage falhar, seguimos com os dados padrão em memória
+        await api.logout();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [loadAllData]);
 
-  const login = useCallback(async (email: string, farmName: string) => {
-    const nextUser: User = { name: email.split('@')[0] || 'Produtor', email, farmName };
-    setUser(nextUser);
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(nextUser));
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      setAuthError(null);
+      try {
+        const loggedUser = await api.login(email, password);
+        setUser(loggedUser);
+        await loadAllData();
+      } catch (err) {
+        setAuthError(err instanceof api.ApiError ? err.message : 'Não foi possível entrar');
+        throw err;
+      }
+    },
+    [loadAllData]
+  );
+
+  const register = useCallback(
+    async (email: string, password: string, farmName: string) => {
+      setAuthError(null);
+      try {
+        const newUser = await api.register({ email, password, farmName });
+        setUser(newUser);
+        await loadAllData();
+      } catch (err) {
+        setAuthError(err instanceof api.ApiError ? err.message : 'Não foi possível criar a conta');
+        throw err;
+      }
+    },
+    [loadAllData]
+  );
 
   const logout = useCallback(async () => {
+    await api.logout();
     setUser(null);
-    await AsyncStorage.removeItem(USER_KEY);
+    setHistory([]);
+    setOrders([]);
+    setSectors([]);
   }, []);
 
-  const addDetection = useCallback((result: DetectionResult) => {
-    setHistory((prev) => {
-      const next = [result, ...prev];
-      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
+  const addDetection = useCallback(async (photoUri: string | null) => {
+    const detection = await api.createDetection(photoUri);
+    setHistory((prev) => [detection, ...prev]);
+    return detection;
   }, []);
 
-  const persistOrders = (next: ServiceOrder[]) => {
-    AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(next)).catch(() => {});
-    return next;
-  };
-
-  const updateOrderStatus = useCallback((id: string, status: ServiceOrder['status']) => {
-    setOrders((prev) => persistOrders(prev.map((o) => (o.id === id ? { ...o, status } : o))));
+  const updateOrderStatusFn = useCallback(async (id: string, status: ServiceOrder['status']) => {
+    const updated = await api.updateOrderStatus(id, status);
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
   }, []);
 
-  const addOrder = useCallback((order: Omit<ServiceOrder, 'id' | 'code' | 'status' | 'date'>) => {
-    setOrders((prev) => {
-      const seq = 100 + prev.length + 1;
-      const newOrder: ServiceOrder = {
-        ...order,
-        id: `os-${Date.now()}`,
-        code: `OS-${new Date().getFullYear()}-${seq}`,
-        status: 'pending',
-        date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-      };
-      return persistOrders([newOrder, ...prev]);
-    });
+  const addOrder = useCallback(async (order: { product: string; sector: string; crop: Crop }) => {
+    const created = await api.createOrder(order);
+    setOrders((prev) => [created, ...prev]);
   }, []);
 
   const syncNow = useCallback(async () => {
     setIsSyncing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    setLastSync(Date.now());
-    setIsSyncing(false);
-  }, []);
+    try {
+      await loadAllData();
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [loadAllData]);
 
   const value = useMemo(
     () => ({
       user,
       isLoading,
+      authError,
       login,
+      register,
       logout,
       history,
       addDetection,
       orders,
-      updateOrderStatus,
+      updateOrderStatus: updateOrderStatusFn,
       addOrder,
+      sectors,
       lastSync,
       isSyncing,
       syncNow,
     }),
-    [user, isLoading, login, logout, history, addDetection, orders, updateOrderStatus, addOrder, lastSync, isSyncing, syncNow]
+    [
+      user,
+      isLoading,
+      authError,
+      login,
+      register,
+      logout,
+      history,
+      addDetection,
+      orders,
+      updateOrderStatusFn,
+      addOrder,
+      sectors,
+      lastSync,
+      isSyncing,
+      syncNow,
+    ]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

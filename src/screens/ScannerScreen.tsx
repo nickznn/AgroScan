@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -8,10 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
-import { pickRandomPest } from '../data/pests';
 import { RootStackParamList } from '../navigation/types';
-import { SECTORS } from '../data/sectors';
-import { DetectionResult } from '../types';
 
 export function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -21,47 +18,34 @@ export function ScannerScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { addDetection } = useApp();
 
-  const runAnalysis = (uri: string | null) => {
+  const runAnalysis = async (uri: string | null) => {
     setPhotoUri(uri);
     setAnalyzing(true);
-    setTimeout(() => {
-      const pest = pickRandomPest();
-      const sector = SECTORS[Math.floor(Math.random() * SECTORS.length)];
-      const confidence = 60 + Math.random() * 39;
-      const affectedArea =
-        pest.affectedAreaRange[0] + Math.random() * (pest.affectedAreaRange[1] - pest.affectedAreaRange[0]);
-      const result: DetectionResult = {
-        id: `scan-${Date.now()}`,
-        pest,
-        confidence,
-        sector: sector.name,
-        timestamp: Date.now(),
-        photoUri: uri,
-        affectedArea,
-        stage: pest.severity === 'critical' ? 'L3-L4 (Desenvolvimento)' : pest.severity === 'moderate' ? 'Estágio inicial' : 'Presença isolada',
-        offline: Math.random() > 0.5,
-      };
-      addDetection(result);
+    try {
+      const detection = await addDetection(uri);
+      navigation.navigate('ReportDetail', { id: detection.id });
+    } catch (err) {
+      Alert.alert('Erro ao analisar', err instanceof Error ? err.message : 'Tente novamente.');
+    } finally {
       setAnalyzing(false);
       setPhotoUri(null);
-      navigation.navigate('ReportDetail', { id: result.id });
-    }, 1800);
+    }
   };
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.6 });
-      runAnalysis(photo?.uri ?? null);
+      await runAnalysis(photo?.uri ?? null);
     } catch {
-      runAnalysis(null);
+      await runAnalysis(null);
     }
   };
 
   const pickFromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6 });
     if (!result.canceled) {
-      runAnalysis(result.assets[0].uri);
+      await runAnalysis(result.assets[0].uri);
     }
   };
 
@@ -72,7 +56,7 @@ export function ScannerScreen() {
         <View style={styles.analyzingOverlay}>
           <ActivityIndicator size="large" color={colors.secondary} />
           <Text style={[typography.titleMd, { color: colors.onPrimary, marginTop: 16 }]}>Analisando com IA...</Text>
-          <Text style={[typography.bodySm, { color: colors.inversePrimary, marginTop: 4 }]}>Processando localmente no dispositivo</Text>
+          <Text style={[typography.bodySm, { color: colors.inversePrimary, marginTop: 4 }]}>Enviando para o servidor AgroScan</Text>
         </View>
       </View>
     );

@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
 
 export function LoginScreen() {
-  const { login } = useApp();
+  const { login, register } = useApp();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,14 +18,22 @@ export function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      setError('Informe um e-mail e senha válidos.');
+      setError('Informe um e-mail e senha válidos (mínimo 4 caracteres).');
       return;
     }
     setError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 700));
-    await login(email.trim(), farmName.trim() || 'Minha Fazenda');
-    setLoading(false);
+    try {
+      if (mode === 'login') {
+        await login(email.trim(), password);
+      } else {
+        await register(email.trim(), password, farmName.trim() || 'Minha Fazenda');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível continuar. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,7 +100,7 @@ export function LoginScreen() {
             style={{ marginTop: 8 }}
           />
 
-          <Text style={styles.hint}>Demonstração acadêmica — dados armazenados apenas no dispositivo.</Text>
+          <Text style={styles.hint}>Conectado à API do AgroScan — sua conta fica salva no servidor.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

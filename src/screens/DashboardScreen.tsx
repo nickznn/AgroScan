@@ -13,12 +13,14 @@ import { RootStackParamList } from '../navigation/types';
 import { formatRelativeTime } from '../utils/format';
 
 export function DashboardScreen() {
-  const { user, history } = useApp();
+  const { user, history, sectors } = useApp();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const firstName = user?.name?.split(/[.\s]/)[0] || 'Produtor';
   const recent = history.slice(0, 3);
 
-  const avgHealth = 85;
+  const avgHealth = sectors.length
+    ? Math.round(sectors.reduce((sum, s) => sum + s.healthScore, 0) / sectors.length)
+    : 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

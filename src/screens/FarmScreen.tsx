@@ -6,8 +6,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
-import { FARM, SECTORS } from '../data/sectors';
+import { FARM } from '../data/sectors';
 import { MoreStackParamList } from '../navigation/types';
+import { useApp } from '../context/AppContext';
 
 const STATUS_MAP = {
   optimal: { label: 'Optimal', color: colors.success },
@@ -17,6 +18,7 @@ const STATUS_MAP = {
 
 export function FarmScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
+  const { sectors } = useApp();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -46,7 +48,7 @@ export function FarmScreen() {
           </View>
         </View>
 
-        {SECTORS.map((sector) => {
+        {sectors.map((sector) => {
           const status = STATUS_MAP[sector.status];
           return (
             <Card key={sector.id} accentColor={status.color} style={{ marginBottom: 12 }}>

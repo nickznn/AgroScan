@@ -9,7 +9,6 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
 import { MoreStackParamList } from '../navigation/types';
-import { SECTORS } from '../data/sectors';
 import { OrderStatus } from '../types';
 
 const FILTERS: { key: OrderStatus | 'all'; label: string }[] = [
@@ -26,37 +25,56 @@ const STATUS_OPTIONS: { key: OrderStatus; label: string; color: string; bg: stri
 ];
 
 export function OrdersScreen() {
-  const { orders, updateOrderStatus, addOrder } = useApp();
+  const { orders, sectors, updateOrderStatus, addOrder } = useApp();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [product, setProduct] = useState('');
   const [sectorIndex, setSectorIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
-  const handleSetStatus = (id: string, current: OrderStatus, next: OrderStatus) => {
+  const handleSetStatus = async (id: string, current: OrderStatus, next: OrderStatus) => {
     if (current === next) return;
+    const apply = async () => {
+      try {
+        await updateOrderStatus(id, next);
+      } catch (err) {
+        Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível atualizar a ordem.');
+      }
+    };
     if (next === 'completed') {
       Alert.alert('Concluir ordem?', 'Confirma que esta aplicação foi finalizada no campo?', [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Concluir', onPress: () => updateOrderStatus(id, next) },
+        { text: 'Concluir', onPress: apply },
       ]);
       return;
     }
-    updateOrderStatus(id, next);
+    await apply();
   };
 
-  const handleCreateOrder = () => {
+  const handleCreateOrder = async () => {
     if (!product.trim()) {
       Alert.alert('Informe o defensivo/produto da ordem.');
       return;
     }
-    const sector = SECTORS[sectorIndex];
-    addOrder({ product: product.trim(), sector: sector.name, crop: sector.crop });
-    setProduct('');
-    setSectorIndex(0);
-    setModalVisible(false);
+    if (sectors.length === 0) {
+      Alert.alert('Nenhum setor disponível ainda.');
+      return;
+    }
+    const sector = sectors[sectorIndex];
+    setSaving(true);
+    try {
+      await addOrder({ product: product.trim(), sector: sector.name, crop: sector.crop });
+      setProduct('');
+      setSectorIndex(0);
+      setModalVisible(false);
+    } catch (err) {
+      Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível criar a ordem.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -133,7 +151,7 @@ export function OrdersScreen() {
 
             <Text style={styles.label}>Setor</Text>
             <View style={styles.sectorRow}>
-              {SECTORS.map((s, index) => (
+              {sectors.map((s, index) => (
                 <Pressable
                   key={s.id}
                   onPress={() => setSectorIndex(index)}
@@ -144,7 +162,7 @@ export function OrdersScreen() {
               ))}
             </View>
 
-            <Button label="CRIAR ORDEM" onPress={handleCreateOrder} style={{ marginTop: 20 }} />
+            <Button label="CRIAR ORDEM" onPress={handleCreateOrder} loading={saving} style={{ marginTop: 20 }} />
             <Button label="CANCELAR" variant="outline" onPress={() => setModalVisible(false)} style={{ marginTop: 12 }} />
           </View>
         </View>
