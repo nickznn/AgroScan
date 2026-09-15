@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File } from 'expo-file-system';
 import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../types';
 
 const API_URL_KEY = 'agroscan:apiUrl';
@@ -102,7 +103,10 @@ export async function fetchDetections() {
 export async function createDetection(photoUri: string | null) {
   const form = new FormData();
   if (photoUri) {
-    form.append('photo', { uri: photoUri, name: 'scan.jpg', type: 'image/jpeg' } as unknown as Blob);
+    // SDK 57: FormData precisa de um Blob de verdade (via a classe File), não mais de
+    // um objeto {uri, name, type} solto — isso agora dá "Unsupported FormDataPart implementation".
+    const file = new File(photoUri);
+    form.append('photo', file, 'scan.jpg');
   }
   const data = await request<{ detection: DetectionResult }>('/detections', {
     method: 'POST',
