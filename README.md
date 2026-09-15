@@ -55,23 +55,32 @@ Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria/po
 npm install
 npx expo start
 ```
-rodar na faculdade
-Na faculdade, dentro da pasta do projeto:
-
-bash
-npm install
-npm install @expo/ngrok@^4.1.0 --save-dev
-npx expo start --tunnel
-
-Os dois primeiros só na primeira vez. Depois disso, quando abrir um terminal novo:
-
-bash
-cd ~/Downloads/AgroScan-master\ \(1\)/AgroScan-master
-npx expo start --tunnel
 
 Escaneie o QR code com o app **Expo Go** (Android/iOS), com o celular na mesma rede Wi-Fi do computador que está rodando o backend.
 
 Por padrão o app tenta falar com `http://192.168.0.73:4000` (IP da máquina de desenvolvimento). **Se o IP mudar** (outra rede Wi-Fi, ex: na faculdade), abra o app → **Mais → Configurações → Servidor**, digite o novo endereço (ex: `http://<seu-ip-local>:4000`) e toque em "Testar e Salvar" — não precisa reinstalar nada.
+
+### Rodando na faculdade (Wi-Fi bloqueando celular ↔ notebook)
+
+Se o Wi-Fi da faculdade isolar os dispositivos (comum em rede institucional), o app em si ainda abre via **tunnel** do Expo, mas isso só entrega o código JS — as chamadas para a API (login, scanner, etc.) continuam precisando que o celular alcance o IP do notebook. O jeito mais simples de garantir isso é criar um **hotspot no próprio celular e conectar o notebook nele** (assim os dois ficam na mesma rede de verdade). Feito isso:
+
+```bash
+cd backend && npm run dev      # um terminal
+npx expo start                  # outro terminal, na raiz do projeto
+```
+
+Se preferir usar o tunnel do Expo mesmo assim (só resolve o carregamento do app, não a API):
+
+```bash
+npm install @expo/ngrok@^4.1.0 --save-dev   # só na primeira vez
+npx expo start --tunnel
+```
+
+Nas próximas vezes, sem precisar reinstalar nada:
+
+```bash
+npx expo start --tunnel
+```
 
 ## Estrutura do projeto
 
