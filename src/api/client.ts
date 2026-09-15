@@ -50,8 +50,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${baseUrl}${path}`, { ...options, headers });
-  } catch {
-    throw new ApiError(`Não foi possível conectar ao servidor (${baseUrl}). Verifique o IP em Configurações.`);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.warn(`[api] fetch falhou para ${path}:`, detail);
+    throw new ApiError(`Não foi possível conectar ao servidor (${baseUrl}). ${detail}`);
   }
 
   const text = await response.text();

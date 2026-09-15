@@ -18,7 +18,7 @@ const STATUS_MAP = {
 
 export function FarmScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const { sectors } = useApp();
+  const { sectors, user } = useApp();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -28,7 +28,7 @@ export function FarmScreen() {
           <View style={styles.farmImage}>
             <MaterialIcons name="landscape" size={40} color={colors.secondary} />
           </View>
-          <Text style={[typography.headlineMd, { marginTop: 12, textAlign: 'center' }]}>{FARM.name}</Text>
+          <Text style={[typography.headlineMd, { marginTop: 12, textAlign: 'center' }]}>{user?.farmName ?? FARM.name}</Text>
           <Text style={[typography.bodySm, { color: colors.onSurfaceVariant, textAlign: 'center', marginBottom: 12 }]}>
             {FARM.location} · {FARM.hectares} Hectares
           </Text>
