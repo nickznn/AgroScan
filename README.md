@@ -55,6 +55,19 @@ Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria/po
 npm install
 npx expo start
 ```
+rodar na faculdade
+Na faculdade, dentro da pasta do projeto:
+
+bash
+npm install
+npm install @expo/ngrok@^4.1.0 --save-dev
+npx expo start --tunnel
+
+Os dois primeiros só na primeira vez. Depois disso, quando abrir um terminal novo:
+
+bash
+cd ~/Downloads/AgroScan-master\ \(1\)/AgroScan-master
+npx expo start --tunnel
 
 Escaneie o QR code com o app **Expo Go** (Android/iOS), com o celular na mesma rede Wi-Fi do computador que está rodando o backend.
 
