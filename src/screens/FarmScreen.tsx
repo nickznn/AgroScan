@@ -26,7 +26,11 @@ export function FarmScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Card>
           <View style={styles.farmImage}>
-            <MaterialIcons name="landscape" size={40} color={colors.secondary} />
+            {user?.farmPhotoUrl ? (
+              <Image source={{ uri: user.farmPhotoUrl }} style={styles.farmImagePhoto} />
+            ) : (
+              <MaterialIcons name="landscape" size={40} color={colors.secondary} />
+            )}
           </View>
           <Text style={[typography.headlineMd, { marginTop: 12, textAlign: 'center' }]}>{user?.farmName ?? FARM.name}</Text>
           <Text style={[typography.bodySm, { color: colors.onSurfaceVariant, textAlign: 'center', marginBottom: 12 }]}>
@@ -86,7 +90,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  farmImagePhoto: { width: '100%', height: '100%' },
   cropRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   cropPill: { backgroundColor: colors.surfaceContainerHigh, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

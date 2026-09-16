@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,7 +24,11 @@ export function MoreMenuScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable style={styles.profile} onPress={() => navigation.navigate('Profile')}>
           <View style={styles.avatar}>
-            <MaterialIcons name="person" size={28} color={colors.onPrimary} />
+            {user?.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <MaterialIcons name="person" size={28} color={colors.onPrimary} />
+            )}
           </View>
           <View style={{ marginLeft: 12, flex: 1 }}>
             <Text style={typography.titleMd}>{user?.name ?? 'Produtor'}</Text>
@@ -53,7 +57,8 @@ export function MoreMenuScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20 },
   profile: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  avatar: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

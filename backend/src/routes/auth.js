@@ -4,11 +4,20 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { seedForNewUser } = require('../seed');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
+const { upload, absoluteUrl } = require('../upload');
 
 const router = express.Router();
 
-function toPublicUser(row) {
-  return { id: row.id, name: row.name, email: row.email, farmName: row.farm_name, createdAt: row.created_at };
+function toPublicUser(req, row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    farmName: row.farm_name,
+    createdAt: row.created_at,
+    avatarUrl: absoluteUrl(req, row.avatar_url),
+    farmPhotoUrl: absoluteUrl(req, row.farm_photo_url),
+  };
 }
 
 router.post('/register', async (req, res) => {
@@ -32,7 +41,7 @@ router.post('/register', async (req, res) => {
 
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
   const token = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-  res.status(201).json({ token, user: toPublicUser(user) });
+  res.status(201).json({ token, user: toPublicUser(req, user) });
 });
 
 router.post('/login', async (req, res) => {
@@ -52,13 +61,13 @@ router.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: toPublicUser(user) });
+  res.json({ token, user: toPublicUser(req, user) });
 });
 
 router.get('/me', requireAuth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-  res.json({ user: toPublicUser(user) });
+  res.json({ user: toPublicUser(req, user) });
 });
 
 router.patch('/me', requireAuth, (req, res) => {
@@ -73,7 +82,25 @@ router.patch('/me', requireAuth, (req, res) => {
   );
 
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
-  res.json({ user: toPublicUser(updated) });
+  res.json({ user: toPublicUser(req, updated) });
+});
+
+router.post('/me/avatar', requireAuth, upload.single('photo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhuma foto enviada' });
+
+  db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(`/uploads/${req.file.filename}`, req.userId);
+
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  res.json({ user: toPublicUser(req, updated) });
+});
+
+router.post('/me/farm-photo', requireAuth, upload.single('photo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhuma foto enviada' });
+
+  db.prepare('UPDATE users SET farm_photo_url = ? WHERE id = ?').run(`/uploads/${req.file.filename}`, req.userId);
+
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  res.json({ user: toPublicUser(req, updated) });
 });
 
 module.exports = router;

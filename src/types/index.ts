@@ -52,4 +52,6 @@ export interface User {
   email: string;
   farmName: string;
   createdAt: number;
+  avatarUrl: string | null;
+  farmPhotoUrl: string | null;
 }

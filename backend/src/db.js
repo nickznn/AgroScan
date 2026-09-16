@@ -61,4 +61,14 @@ db.exec(`
   );
 `);
 
+// Migração leve: adiciona colunas novas em bancos já existentes (SQLite não tem
+// "ADD COLUMN IF NOT EXISTS", então checamos o schema atual antes de alterar).
+const userColumns = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
+if (!userColumns.includes('avatar_url')) {
+  db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+}
+if (!userColumns.includes('farm_photo_url')) {
+  db.exec('ALTER TABLE users ADD COLUMN farm_photo_url TEXT');
+}
+
 module.exports = db;

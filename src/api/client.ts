@@ -102,6 +102,22 @@ export async function logout() {
   await setToken(null);
 }
 
+async function uploadUserPhoto(path: string, photoUri: string) {
+  const form = new FormData();
+  const file = new File(photoUri);
+  form.append('photo', file, 'photo.jpg');
+  const data = await request<{ user: User }>(path, { method: 'POST', body: form });
+  return data.user;
+}
+
+export async function uploadAvatar(photoUri: string) {
+  return uploadUserPhoto('/auth/me/avatar', photoUri);
+}
+
+export async function uploadFarmPhoto(photoUri: string) {
+  return uploadUserPhoto('/auth/me/farm-photo', photoUri);
+}
+
 // ---------- Detections ----------
 export async function fetchDetections() {
   const data = await request<{ detections: DetectionResult[] }>('/detections');
