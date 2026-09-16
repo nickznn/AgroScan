@@ -51,4 +51,5 @@ export interface User {
   name: string;
   email: string;
   farmName: string;
+  createdAt: number;
 }

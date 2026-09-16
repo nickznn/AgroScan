@@ -22,15 +22,16 @@ export function MoreMenuScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="AgroScan Intelligence" />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.profile}>
+        <Pressable style={styles.profile} onPress={() => navigation.navigate('Profile')}>
           <View style={styles.avatar}>
             <MaterialIcons name="person" size={28} color={colors.onPrimary} />
           </View>
-          <View style={{ marginLeft: 12 }}>
+          <View style={{ marginLeft: 12, flex: 1 }}>
             <Text style={typography.titleMd}>{user?.name ?? 'Produtor'}</Text>
             <Text style={typography.bodySm}>{user?.farmName ?? 'Fazenda Bela Vista'}</Text>
           </View>
-        </View>
+          <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+        </Pressable>
 
         {ITEMS.map((item) => (
           <Pressable key={item.key} onPress={() => navigation.navigate(item.key)} style={styles.row}>

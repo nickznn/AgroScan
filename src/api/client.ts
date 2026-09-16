@@ -90,6 +90,14 @@ export async function fetchMe() {
   return data.user;
 }
 
+export async function updateProfile(input: { name?: string; farmName?: string }) {
+  const data = await request<{ user: User }>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  return data.user;
+}
+
 export async function logout() {
   await setToken(null);
 }

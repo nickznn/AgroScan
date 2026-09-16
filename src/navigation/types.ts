@@ -16,6 +16,7 @@ export type RootStackParamList = {
 
 export type MoreStackParamList = {
   MoreMenu: undefined;
+  Profile: undefined;
   Farm: undefined;
   Orders: undefined;
   Settings: undefined;

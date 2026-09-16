@@ -8,7 +8,7 @@ const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 const router = express.Router();
 
 function toPublicUser(row) {
-  return { id: row.id, name: row.name, email: row.email, farmName: row.farm_name };
+  return { id: row.id, name: row.name, email: row.email, farmName: row.farm_name, createdAt: row.created_at };
 }
 
 router.post('/register', async (req, res) => {
@@ -59,6 +59,21 @@ router.get('/me', requireAuth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   res.json({ user: toPublicUser(user) });
+});
+
+router.patch('/me', requireAuth, (req, res) => {
+  const { name, farmName } = req.body || {};
+  const current = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  if (!current) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+  db.prepare('UPDATE users SET name = ?, farm_name = ? WHERE id = ?').run(
+    name?.trim() || current.name,
+    farmName?.trim() || current.farm_name,
+    req.userId
+  );
+
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  res.json({ user: toPublicUser(updated) });
 });
 
 module.exports = router;

@@ -9,6 +9,7 @@ interface AppContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, farmName: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (input: { name?: string; farmName?: string }) => Promise<void>;
 
   history: DetectionResult[];
   addDetection: (photoUri: string | null) => Promise<DetectionResult>;
@@ -104,6 +105,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSectors([]);
   }, []);
 
+  const updateProfile = useCallback(async (input: { name?: string; farmName?: string }) => {
+    const updated = await api.updateProfile(input);
+    setUser(updated);
+  }, []);
+
   const addDetection = useCallback(async (photoUri: string | null) => {
     const detection = await api.createDetection(photoUri);
     setHistory((prev) => [detection, ...prev]);
@@ -137,6 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      updateProfile,
       history,
       addDetection,
       orders,
@@ -154,6 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      updateProfile,
       history,
       addDetection,
       orders,
