@@ -10,7 +10,7 @@ import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
 import { MoreStackParamList } from '../navigation/types';
 import { formatDateTime } from '../utils/format';
-import { getApiUrl, setApiUrl } from '../api/client';
+import { getApiUrl, testAndSaveApiUrl } from '../api/client';
 
 const OFFLINE_AREAS = [
   { id: 1, label: 'Setor 7 - Milho', size: '124 MB' },
@@ -31,14 +31,12 @@ export function SettingsScreen() {
   const handleSaveApiUrl = async () => {
     setTesting(true);
     try {
-      const res = await fetch(`${apiUrl.trim().replace(/\/+$/, '')}/health`);
-      if (!res.ok) throw new Error('Servidor respondeu com erro');
-      await setApiUrl(apiUrl);
+      await testAndSaveApiUrl(apiUrl);
       Alert.alert('Conectado!', 'Endereço do servidor salvo com sucesso.');
-    } catch {
+    } catch (err) {
       Alert.alert(
         'Não foi possível conectar',
-        'Confira se o backend está rodando e se o celular está na mesma rede do servidor. O endereço não foi salvo.'
+        `${err instanceof Error ? err.message : ''} O endereço não foi salvo.`.trim()
       );
     } finally {
       setTesting(false);
@@ -94,7 +92,7 @@ export function SettingsScreen() {
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="http://192.168.0.73:4000"
+            placeholder="http://192.168.0.10:4000"
             placeholderTextColor={colors.outline}
             autoCapitalize="none"
             autoCorrect={false}

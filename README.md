@@ -47,7 +47,9 @@ npm install
 npm run dev
 ```
 
-Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria/popula o banco (`backend/data/agroscan.db`) na primeira execução.
+Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria o banco (`backend/data/agroscan.db`) na primeira execução — cada conta nova já vem com setores, ordens e histórico de exemplo.
+
+Requisitos: Node 20, 22 ou 24. O `better-sqlite3` está fixado na versão `12.11.1` de propósito: ela baixa um binário pronto, sem precisar de compilador (a v13 tenta compilar C++ e falha em máquinas sem Visual Studio/Xcode).
 
 ### 2. App
 
@@ -58,7 +60,7 @@ npx expo start
 
 Escaneie o QR code com o app **Expo Go** (Android/iOS), com o celular na mesma rede Wi-Fi do computador que está rodando o backend.
 
-Por padrão o app tenta falar com `http://192.168.0.73:4000` (IP da máquina de desenvolvimento). **Se o IP mudar** (outra rede Wi-Fi, ex: na faculdade), abra o app → **Mais → Configurações → Servidor**, digite o novo endereço (ex: `http://<seu-ip-local>:4000`) e toque em "Testar e Salvar" — não precisa reinstalar nada.
+**Endereço do servidor:** o app descobre sozinho o IP do notebook (é o mesmo IP de onde o Expo Go baixa o código) e usa a porta 4000. Se isso não funcionar (modo tunnel, USB, IP diferente), o endereço aparece na **tela de login** ("Servidor: … Alterar") e também em **Mais → Configurações → Servidor**: digite `http://<ip-do-notebook>:4000` e toque em "Testar e Salvar". Para descobrir o IP do notebook: `ipconfig` (Windows) ou `ifconfig` (Mac/Linux). Se o servidor não responder em 15s o app mostra o erro em vez de ficar carregando.
 
 ### Rodando na faculdade (Wi-Fi bloqueando celular ↔ notebook)
 

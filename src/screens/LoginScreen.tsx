@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, radius } from '../theme';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
+import { getApiUrl, testAndSaveApiUrl } from '../api/client';
 
 export function LoginScreen() {
   const { login, register } = useApp();
@@ -13,6 +14,30 @@ export function LoginScreen() {
   const [farmName, setFarmName] = useState('Fazenda Bela Vista');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Servidor: sem isso, um IP errado impede o login e a única tela pra corrigir (Configurações) fica inacessível.
+  const [showServer, setShowServer] = useState(false);
+  const [apiUrl, setApiUrlInput] = useState('');
+  const [checkingServer, setCheckingServer] = useState(false);
+  const [serverStatus, setServerStatus] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    getApiUrl().then(setApiUrlInput);
+  }, []);
+
+  const handleSaveServer = async () => {
+    setCheckingServer(true);
+    setServerStatus(null);
+    try {
+      await testAndSaveApiUrl(apiUrl);
+      setServerStatus({ ok: true, text: 'Conectado! Endereço salvo. Agora é só entrar.' });
+      setError(null);
+    } catch (err) {
+      setServerStatus({ ok: false, text: err instanceof Error ? err.message : 'Não foi possível conectar.' });
+    } finally {
+      setCheckingServer(false);
+    }
+  };
 
   const canSubmit = email.trim().length > 3 && password.trim().length >= 4;
 
@@ -101,6 +126,41 @@ export function LoginScreen() {
           />
 
           <Text style={styles.hint}>Conectado à API do AgroScan — sua conta fica salva no servidor.</Text>
+
+          <Pressable onPress={() => setShowServer((v) => !v)} style={styles.serverToggle}>
+            <MaterialIcons name="dns" size={14} color={colors.outline} />
+            <Text style={styles.serverToggleText} numberOfLines={1}>
+              Servidor: {apiUrl || '...'}
+            </Text>
+            <Text style={styles.serverToggleAction}>{showServer ? 'Fechar' : 'Alterar'}</Text>
+          </Pressable>
+
+          {showServer && (
+            <View style={{ marginTop: 8 }}>
+              <TextInput
+                style={styles.input}
+                placeholder="http://192.168.0.10:4000"
+                placeholderTextColor={colors.outline}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                value={apiUrl}
+                onChangeText={setApiUrlInput}
+              />
+              <Button
+                label="TESTAR E SALVAR"
+                variant="outline"
+                onPress={handleSaveServer}
+                loading={checkingServer}
+                style={{ marginTop: 10 }}
+              />
+              {serverStatus && (
+                <Text style={[styles.serverStatus, { color: serverStatus.ok ? colors.success : colors.error }]}>
+                  {serverStatus.text}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -151,4 +211,17 @@ const styles = StyleSheet.create({
   },
   error: { color: colors.error, marginTop: 12, ...typography.bodySm },
   hint: { ...typography.bodySm, color: colors.outline, textAlign: 'center', marginTop: 16 },
+  serverToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  serverToggleText: { ...typography.monoSm, color: colors.outline, flexShrink: 1 },
+  serverToggleAction: { ...typography.bodySemiBold, color: colors.secondary },
+  serverStatus: { ...typography.bodySm, marginTop: 10, textAlign: 'center' },
 });
