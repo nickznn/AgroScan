@@ -1,7 +1,13 @@
 const Database = require('better-sqlite3');
+const fs = require('fs');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '..', 'data', 'agroscan.db'));
+// A pasta data/ não vai pro git (só o banco dentro dela é ignorado), então num clone
+// novo ela não existe e o SQLite se recusa a abrir o arquivo.
+const dataDir = path.join(__dirname, '..', 'data');
+fs.mkdirSync(dataDir, { recursive: true });
+
+const db = new Database(path.join(dataDir, 'agroscan.db'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
