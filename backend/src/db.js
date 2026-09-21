@@ -2,12 +2,13 @@ const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 
-// A pasta data/ não vai pro git (só o banco dentro dela é ignorado), então num clone
-// novo ela não existe e o SQLite se recusa a abrir o arquivo.
-const dataDir = path.join(__dirname, '..', 'data');
-fs.mkdirSync(dataDir, { recursive: true });
+// A pasta data/ não vai pro git (só o .db dentro dela é ignorado); num clone novo ela não existe
+// e o SQLite se recusa a abrir o arquivo, então é criada aqui.
+// DB_PATH permite apontar para outro arquivo (ex: testes) sem tocar no banco de verdade.
+const dbFile = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'agroscan.db');
+fs.mkdirSync(path.dirname(dbFile), { recursive: true });
 
-const db = new Database(path.join(dataDir, 'agroscan.db'));
+const db = new Database(dbFile);
 db.pragma('journal_mode = WAL');
 
 db.exec(`

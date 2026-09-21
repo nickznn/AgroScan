@@ -18,9 +18,13 @@ router.post('/', requireAuth, (req, res) => {
   if (!product || !sector || !crop) {
     return res.status(400).json({ error: 'product, sector e crop são obrigatórios' });
   }
-  const count = db.prepare('SELECT COUNT(*) as c FROM service_orders WHERE user_id = ?').get(req.userId).c;
+  // O código é só para exibição, mas tem que ser único por usuário: usa o maior número existente + 1.
+  // (Contar as linhas colidia com os códigos de exemplo 102/104/105 criados no cadastro.)
+  const last = db
+    .prepare("SELECT MAX(CAST(substr(code, 9) AS INTEGER)) AS n FROM service_orders WHERE user_id = ?")
+    .get(req.userId).n;
   const id = `os-${Date.now()}`;
-  const code = `OS-${new Date().getFullYear()}-${100 + count + 1}`;
+  const code = `OS-${new Date().getFullYear()}-${(last ?? 100) + 1}`;
   const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   db.prepare(

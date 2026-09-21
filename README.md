@@ -49,6 +49,14 @@ npm run dev
 
 Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria o banco (`backend/data/agroscan.db`) na primeira execução — cada conta nova já vem com setores, ordens e histórico de exemplo.
 
+Comandos do backend (dentro de `backend/`):
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | sobe a API com reinício automático a cada alteração de código |
+| `npm run db` | mostra o conteúdo do banco em tabelas (somente leitura, pode rodar com o servidor ligado) |
+| `npm run smoke` | teste automático de todos os endpoints (51 verificações); cria contas descartáveis e apaga tudo no final |
+
 Requisitos: Node 20, 22 ou 24. O `better-sqlite3` está fixado na versão `12.11.1` de propósito: ela baixa um binário pronto, sem precisar de compilador (a v13 tenta compilar C++ e falha em máquinas sem Visual Studio/Xcode).
 
 ### 2. App
