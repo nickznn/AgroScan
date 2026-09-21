@@ -32,11 +32,43 @@ export function detectDevServerUrl(): string | null {
 let cachedBaseUrl: string | null = null;
 let cachedToken: string | null = null;
 
-// Prioridade: endereço salvo manualmente > endereço detectado > padrão.
+async function isReachable(url: string, timeoutMs = 2500): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url}/health`, { signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveApiUrl(): Promise<string> {
+  const stored = await AsyncStorage.getItem(API_URL_KEY);
+  const detected = detectDevServerUrl();
+
+  // Um endereço salvo dias atrás pode ter ficado velho (o IP do notebook muda de rede em rede).
+  // Se ele não responde mas o detectado responde, troca pelo detectado e salva.
+  if (stored && detected && stored !== detected && !(await isReachable(stored)) && (await isReachable(detected))) {
+    await AsyncStorage.setItem(API_URL_KEY, detected);
+    return detected;
+  }
+  // Prioridade: endereço salvo > endereço detectado > padrão.
+  return stored || detected || DEFAULT_API_URL;
+}
+
+let pendingUrl: Promise<string> | null = null;
+
 export async function getApiUrl(): Promise<string> {
   if (cachedBaseUrl) return cachedBaseUrl;
-  const stored = await AsyncStorage.getItem(API_URL_KEY);
-  cachedBaseUrl = stored || detectDevServerUrl() || DEFAULT_API_URL;
+  if (!pendingUrl) {
+    pendingUrl = resolveApiUrl().finally(() => {
+      pendingUrl = null;
+    });
+  }
+  cachedBaseUrl = await pendingUrl;
   return cachedBaseUrl;
 }
 
