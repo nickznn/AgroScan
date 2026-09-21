@@ -5,7 +5,7 @@ export type MainTabParamList = {
   Scanner: undefined;
   Maps: undefined;
   Reports: undefined;
-  More: undefined;
+  More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 
 export type RootStackParamList = {

@@ -19,6 +19,12 @@ export function ReportDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const item = history.find((h) => h.id === route.params.id);
 
+  // "initial: false" mantém o menu "Mais" como base da pilha e coloca as Ordens por cima.
+  // Sem isso a pilha do Mais ficava só com "Ordens": a seta de voltar não tinha para onde ir,
+  // caía na Home e o toque em "Mais" passava a abrir sempre as Ordens, sem acesso ao menu.
+  const openOrders = () =>
+    navigation.navigate('Main', { screen: 'More', params: { screen: 'Orders', initial: false } });
+
   if (!item) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -85,16 +91,8 @@ export function ReportDetailScreen() {
           <Text style={[typography.bodyMd, { color: colors.onSurfaceVariant, marginTop: 8, marginBottom: 16 }]}>
             {item.pest.recommendedAction}
           </Text>
-          <Button
-            label="INICIAR APLICAÇÃO LOCALIZADA"
-            onPress={() => navigation.navigate('Main', { screen: 'More', params: { screen: 'Orders' } } as never)}
-          />
-          <Button
-            label="GERAR ORDEM DE SERVIÇO"
-            variant="outline"
-            onPress={() => navigation.navigate('Main', { screen: 'More', params: { screen: 'Orders' } } as never)}
-            style={{ marginTop: 12 }}
-          />
+          <Button label="INICIAR APLICAÇÃO LOCALIZADA" onPress={openOrders} />
+          <Button label="GERAR ORDEM DE SERVIÇO" variant="outline" onPress={openOrders} style={{ marginTop: 12 }} />
         </Card>
 
         <Text style={[typography.bodySm, { color: colors.outline, textAlign: 'center', marginTop: 16 }]}>
