@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { NativeModules } from 'react-native';
 import { File } from 'expo-file-system';
 import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../types';
@@ -9,34 +10,51 @@ const API_PORT = 4000;
 
 // Último recurso: só vale se não der pra descobrir o endereço sozinho (veja detectDevServerUrl)
 // e ninguém tiver salvo um endereço na tela de login / Configurações.
-export const DEFAULT_API_URL = `http://192.168.0.125:${API_PORT}`;
+export const DEFAULT_API_URL = `http://localhost:${API_PORT}`;
+
+// Extrai o IPv4 de strings como "192.168.0.10:8081", "exp://192.168.0.10:8081" ou "http://192.168.0.10:8081/index.bundle?...".
+function ipv4FromUri(uri: unknown): string | null {
+  if (typeof uri !== 'string') return null;
+  const host = uri.match(/^(?:[a-z][a-z0-9+.-]*:\/\/)?(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?(?:[/?]|$)/i)?.[1];
+  if (!host || host.startsWith('127.') || host === '0.0.0.0') return null;
+  return host;
+}
 
 /**
- * Em desenvolvimento (Expo Go) o app baixa o JavaScript do Metro, que roda no mesmo notebook do
- * backend. O IP que aparece na URL do bundle é, portanto, o IP do backend — assim não é preciso
- * digitar o IP toda vez que a rede muda. Devolve null em tunnel, web, USB (localhost) e build final.
+ * Em desenvolvimento (Expo Go) o app baixa o JavaScript do Metro, que roda no mesmo computador do
+ * backend. O IP que aparece nesse endereço é, portanto, o IP do backend — assim não é preciso
+ * digitar o IP toda vez que a rede muda. Devolve null em tunnel (que usa um nome, não um IP),
+ * USB (localhost) e build final.
  */
 export function detectDevServerUrl(): string | null {
+  const sources: unknown[] = [];
+  try {
+    sources.push(Constants.expoConfig?.hostUri);
+    sources.push(Constants.linkingUri);
+  } catch {
+    // ignora: tenta as outras fontes
+  }
   try {
     const source = NativeModules.SourceCode;
-    const scriptURL: unknown = source?.scriptURL ?? source?.getConstants?.()?.scriptURL;
-    if (typeof scriptURL !== 'string') return null;
-    const host = scriptURL.match(/^https?:\/\/(\d{1,3}(?:\.\d{1,3}){3})[:/]/)?.[1];
-    if (!host || host.startsWith('127.') || host === '0.0.0.0') return null;
-    return `http://${host}:${API_PORT}`;
+    sources.push(source?.scriptURL ?? source?.getConstants?.()?.scriptURL);
   } catch {
-    return null;
+    // ignora
   }
+  for (const candidate of sources) {
+    const host = ipv4FromUri(candidate);
+    if (host) return `http://${host}:${API_PORT}`;
+  }
+  return null;
 }
 
 let cachedBaseUrl: string | null = null;
 let cachedToken: string | null = null;
 
-async function isReachable(url: string, timeoutMs = 2500): Promise<boolean> {
+export async function isReachable(url: string, timeoutMs = 2500): Promise<boolean> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${url}/health`, { signal: controller.signal });
+    const res = await fetch(`${url.replace(/\/+$/, '')}/health`, { signal: controller.signal });
     return res.ok;
   } catch {
     return false;

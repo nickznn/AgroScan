@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, radius } from '../theme';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
-import { getApiUrl, testAndSaveApiUrl } from '../api/client';
+import { getApiUrl, isReachable, testAndSaveApiUrl } from '../api/client';
 
 export function LoginScreen() {
   const { login, register } = useApp();
@@ -21,8 +21,19 @@ export function LoginScreen() {
   const [checkingServer, setCheckingServer] = useState(false);
   const [serverStatus, setServerStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // 'checking' | 'online' | 'offline': o celular consegue falar com o backend neste endereço?
+  const [link, setLink] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  const checkLink = async (url: string) => {
+    setLink('checking');
+    setLink((await isReachable(url, 4000)) ? 'online' : 'offline');
+  };
+
   useEffect(() => {
-    getApiUrl().then(setApiUrlInput);
+    getApiUrl().then((url) => {
+      setApiUrlInput(url);
+      checkLink(url);
+    });
   }, []);
 
   const handleSaveServer = async () => {
@@ -32,6 +43,7 @@ export function LoginScreen() {
       await testAndSaveApiUrl(apiUrl);
       setServerStatus({ ok: true, text: 'Conectado! Endereço salvo. Agora é só entrar.' });
       setError(null);
+      setLink('online');
     } catch (err) {
       setServerStatus({ ok: false, text: err instanceof Error ? err.message : 'Não foi possível conectar.' });
     } finally {
@@ -125,7 +137,31 @@ export function LoginScreen() {
             style={{ marginTop: 8 }}
           />
 
-          <Text style={styles.hint}>Conectado à API do AgroScan — sua conta fica salva no servidor.</Text>
+          <View style={styles.linkRow}>
+            <View
+              style={[
+                styles.linkDot,
+                { backgroundColor: link === 'online' ? colors.success : link === 'offline' ? colors.error : colors.outline },
+              ]}
+            />
+            <Text
+              style={[
+                styles.hint,
+                { marginTop: 0, flexShrink: 1, color: link === 'online' ? colors.success : link === 'offline' ? colors.error : colors.outline },
+              ]}
+            >
+              {link === 'checking'
+                ? 'Verificando o servidor...'
+                : link === 'online'
+                  ? 'Servidor conectado — sua conta fica salva no servidor.'
+                  : 'Sem resposta do servidor. Confira se o backend está rodando no computador e se o celular está na mesma rede Wi-Fi (ou use o hotspot do celular). Se o endereço abaixo estiver errado, toque em "Alterar".'}
+            </Text>
+          </View>
+          {link === 'offline' && (
+            <Pressable onPress={() => getApiUrl().then(checkLink)} style={{ alignSelf: 'center', marginTop: 8 }}>
+              <Text style={styles.serverToggleAction}>Tentar de novo</Text>
+            </Pressable>
+          )}
 
           <Pressable onPress={() => setShowServer((v) => !v)} style={styles.serverToggle}>
             <MaterialIcons name="dns" size={14} color={colors.outline} />
@@ -211,6 +247,8 @@ const styles = StyleSheet.create({
   },
   error: { color: colors.error, marginTop: 12, ...typography.bodySm },
   hint: { ...typography.bodySm, color: colors.outline, textAlign: 'center', marginTop: 16 },
+  linkRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 8, marginTop: 16 },
+  linkDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
   serverToggle: {
     flexDirection: 'row',
     alignItems: 'center',
