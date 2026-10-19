@@ -37,60 +37,97 @@ O app (`/`) é um cliente React Native/Expo que fala com uma **API própria** (`
 - Autenticação JWT + senha com hash (`bcryptjs`)
 - Upload de fotos (`multer`), servidas estaticamente em `/uploads`
 
-## Como rodar
+## Como rodar (passo a passo para qualquer computador)
 
-### 1. Backend
+> Serve para o PC da faculdade, para a casa dos colegas e para o seu. O app roda no **celular** (Expo Go) e o
+> **backend** roda no computador; o comando abaixo sobe os dois juntos.
+
+### 1. Antes de tudo: instale o Node (só na primeira vez)
+
+Baixe o **Node 22 LTS** em https://nodejs.org (botão "LTS") e instale com tudo no padrão. Depois **feche o VS Code por
+completo e abra de novo** e confira no terminal:
 
 ```bash
-cd backend
-npm install
+node -v
+```
+
+O número precisa ser **20.19.4 ou maior, 22.13 ou maior, ou 24.3 ou maior**. Versões como 18, 20.10 ou 22.5 **não funcionam**
+(o Expo quebra com um erro enorme e sem sentido, como `configs.toReversed is not a function`).
+Instale também o **Expo Go** no celular (Play Store / App Store).
+
+### 2. Baixe o projeto
+
+```bash
+git clone https://github.com/nickznn/AgroScan.git
+cd AgroScan
+```
+
+(sem git: no GitHub, **Code → Download ZIP**, extraia e abra a pasta no VS Code. Prefira um caminho curto, como `C:\projetos\AgroScan`, e
+**fora do OneDrive**.)
+
+### 3. Rode (um comando só)
+
+```bash
 npm run dev
 ```
 
-Isso sobe a API em `http://0.0.0.0:4000` (todas as interfaces de rede) e cria o banco (`backend/data/agroscan.db`) na primeira execução — cada conta nova já vem com setores, ordens e histórico de exemplo.
+Na primeira vez ele instala tudo sozinho (alguns minutos, precisa de internet), confere o ambiente, sobe o **backend** e o **Expo**
+e mostra o **QR Code**. Escaneie com o **Expo Go**. Na tela de login do app deve aparecer **"Servidor conectado"** (bolinha verde).
+Crie uma conta e use. Para parar tudo: `Ctrl+C`.
 
-Comandos do backend (dentro de `backend/`):
+### Se algo não funcionar
+
+Rode o diagnóstico e mande o resultado (print) no grupo:
+
+```bash
+npm run doctor
+```
+
+| O que aparece | Causa | Solução |
+|---|---|---|
+| `Node ... não serve para este projeto` | Node antigo | Instale o Node 22 LTS (passo 1), feche e reabra o VS Code, `npm run setup -- --clean` |
+| `configs.toReversed is not a function` | Node 18 (ou antigo) rodando o Expo direto | Mesma coisa acima. Use `npm run dev`, que avisa em português |
+| `gyp ERR! find VS` / `Could not find any Visual Studio` | O SQLite tentou compilar porque o Node é muito antigo/novo | Node 20.19.4+, 22.13+ ou 24.3+ (passo 1). O projeto fixa o `better-sqlite3@12.9.0`, que tem binário pronto para essas versões |
+| `NODE_MODULE_VERSION ... was compiled against a different Node` | As dependências foram instaladas com outro Node | `npm run setup -- --clean` (o `npm run dev` já tenta consertar sozinho) |
+| `A porta 4000 está ocupada` | Outro terminal antigo com o backend aberto | Feche-o (ou mande o comando que o aviso mostra) |
+| Login: **"Sem resposta do servidor"** (bolinha vermelha) | O celular não alcança o computador | Os dois precisam estar na **mesma rede Wi-Fi**. Se não resolver, veja "Rodando na faculdade" abaixo |
+| O QR Code abre, mas com o IP errado | O computador tem várias redes (VPN, VirtualBox, WSL...) | `npm run dev -- --ip=192.168.x.x` (o IP do Wi-Fi; `ipconfig` mostra) |
+| O Windows perguntou sobre o Firewall (ou o celular não conecta e o Firewall é suspeito) | Primeira vez que o Node abre uma porta; o Windows só marca "redes privadas" por padrão, e Wi-Fi de casa/faculdade/hotspot costuma ser tratado como "pública" | Clique em **Permitir acesso** marcando **privadas e públicas**. Já negou ou marcou só uma? Rode `npm run doctor`: ele confere o Firewall e mostra o comando exato (PowerShell como administrador) para liberar |
+| `EPERM` / `EBUSY` durante a instalação | Pasta dentro do OneDrive/antivírus travando arquivos | Mova o projeto para `C:\projetos\AgroScan` e rode `npm run setup -- --clean` |
+| Expo Go: "incompatible SDK version" | Expo Go desatualizado | Atualize o Expo Go na loja de aplicativos |
+
+### Rodando na faculdade (a rede costuma bloquear celular ↔ computador)
+
+Redes de faculdade geralmente **isolam os aparelhos**: o celular e o computador estão no mesmo Wi-Fi, mas não conseguem se falar. Nesse caso
+o celular nem abre o app, ou abre e o login mostra "Sem resposta do servidor". O modo `--tunnel` do Expo **não resolve**: ele entrega só
+o código do app, e o backend (login, fotos, ordens) continua inalcançável.
+
+**Solução que funciona:** use o **hotspot do celular**.
+
+1. No celular, ligue o **hotspot / roteador Wi-Fi** (Configurações → Conexões → Roteador Wi-Fi). Não gasta o plano de dados: o tráfego entre os dois aparelhos é local.
+2. Conecte o **computador** nessa rede do celular.
+3. No computador: `npm run dev` e escaneie o QR Code com o Expo Go (no mesmo celular).
+4. No login deve aparecer "Servidor conectado". Se o IP estiver errado: `npm run dev -- --ip=IP_DO_COMPUTADOR`.
+
+Faça esse teste **antes** da apresentação, na própria sala.
+
+### Outros comandos
 
 | Comando | O que faz |
 |---|---|
-| `npm run dev` | sobe a API com reinício automático a cada alteração de código |
-| `npm run db` | mostra o conteúdo do banco em tabelas (somente leitura, pode rodar com o servidor ligado) |
-| `npm run smoke` | teste automático de todos os endpoints (51 verificações); cria contas descartáveis e apaga tudo no final |
+| `npm run dev` | sobe backend + app juntos (o principal) |
+| `npm run api` | sobe só o backend |
+| `npm run setup` | instala e confere o ambiente (`-- --clean` apaga e reinstala tudo) |
+| `npm run doctor` | diagnóstico do computador, para mandar no grupo |
+| `cd backend && npm run db` | mostra o banco de dados em tabelas (somente leitura) |
+| `cd backend && npm run smoke` | teste automático da API (51 verificações; precisa do backend ligado) |
 
-Requisitos: Node 20, 22 ou 24. O `better-sqlite3` está fixado na versão `12.11.1` de propósito: ela baixa um binário pronto, sem precisar de compilador (a v13 tenta compilar C++ e falha em máquinas sem Visual Studio/Xcode).
+**Endereço do servidor:** o app descobre sozinho o IP do computador (o mesmo de onde o Expo Go baixa o código) e usa a porta 4000.
+Dá para ver e corrigir na **tela de login** ("Servidor: … Alterar") e em **Mais → Configurações → Servidor**.
 
-### 2. App
-
-```bash
-npm install
-npx expo start
-```
-
-Escaneie o QR code com o app **Expo Go** (Android/iOS), com o celular na mesma rede Wi-Fi do computador que está rodando o backend.
-
-**Endereço do servidor:** o app descobre sozinho o IP do notebook (é o mesmo IP de onde o Expo Go baixa o código) e usa a porta 4000. Se isso não funcionar (modo tunnel, USB, IP diferente), o endereço aparece na **tela de login** ("Servidor: … Alterar") e também em **Mais → Configurações → Servidor**: digite `http://<ip-do-notebook>:4000` e toque em "Testar e Salvar". Para descobrir o IP do notebook: `ipconfig` (Windows) ou `ifconfig` (Mac/Linux). Se o servidor não responder em 15s o app mostra o erro em vez de ficar carregando.
-
-### Rodando na faculdade (Wi-Fi bloqueando celular ↔ notebook)
-
-Se o Wi-Fi da faculdade isolar os dispositivos (comum em rede institucional), o app em si ainda abre via **tunnel** do Expo, mas isso só entrega o código JS — as chamadas para a API (login, scanner, etc.) continuam precisando que o celular alcance o IP do notebook. O jeito mais simples de garantir isso é criar um **hotspot no próprio celular e conectar o notebook nele** (assim os dois ficam na mesma rede de verdade). Feito isso:
-
-```bash
-cd backend && npm run dev      # um terminal
-npx expo start                  # outro terminal, na raiz do projeto
-```
-
-Se preferir usar o tunnel do Expo mesmo assim (só resolve o carregamento do app, não a API):
-
-```bash
-npm install @expo/ngrok@^4.1.0 --save-dev   # só na primeira vez
-npx expo start --tunnel
-```
-
-Nas próximas vezes, sem precisar reinstalar nada:
-
-```bash
-npx expo start --tunnel
-```
+**Por que o `better-sqlite3` está fixado em `12.9.0`:** é a última versão que publica binário pronto (sem compilar) para Node 20, 22, 24 e 25
+em Windows, Mac e Linux. A `12.10.0` em diante parou de publicar para o Node 20, e aí o `npm install` tenta compilar C++ e falha em quem não
+tem o Visual Studio.
 
 ## Estrutura do projeto
 
