@@ -1,11 +1,11 @@
 // Garante que o computador está pronto: Node compatível, dependências instaladas, SQLite funcionando.
 // Usado por `npm run setup` e `npm run dev`.
-const {
+import {
   ROOT, BACKEND, c, ok, warn, fail, info,
-  nodeStatus, explainBadNode, run, hasDeps, removeNodeModules, sqliteStatus, resolveExpoCli,
-} = require('./lib');
+  nodeStatus, explainBadNode, run, hasDeps, removeNodeModules, sqliteStatus, resolveExpoCli, resolveBackendTsx,
+} from './lib';
 
-function pathWarnings() {
+export function pathWarnings(): void {
   if (/onedrive/i.test(ROOT)) {
     warn('O projeto está dentro do OneDrive. A sincronização pode travar o npm install (erros EPERM).');
     console.log('        Se der erro, copie a pasta para um lugar fora do OneDrive, por exemplo C:\\projetos\\AgroScan.');
@@ -15,9 +15,9 @@ function pathWarnings() {
   }
 }
 
-function install(dir, label) {
+function install(dir: string, label: string): void {
   try {
-    run('npm install', dir);
+    run('npm install --no-audit --no-fund', dir);
   } catch {
     fail(`A instalação de ${label} falhou (veja o erro acima).`);
     console.log('        Causas comuns: sem internet, Node fora da faixa suportada, ou antivírus/OneDrive bloqueando arquivos.');
@@ -26,7 +26,7 @@ function install(dir, label) {
   }
 }
 
-async function ensureEnvironment({ clean = false } = {}) {
+export async function ensureEnvironment({ clean = false }: { clean?: boolean } = {}): Promise<void> {
   const status = nodeStatus();
   if (!status.ok) {
     explainBadNode(status);
@@ -47,7 +47,7 @@ async function ensureEnvironment({ clean = false } = {}) {
   }
   ok('Dependências do app');
 
-  if (!hasDeps(BACKEND)) {
+  if (!hasDeps(BACKEND) || !resolveBackendTsx()) {
     info('Instalando as dependências do backend...');
     install(BACKEND, 'o backend');
   }
@@ -77,5 +77,3 @@ async function ensureEnvironment({ clean = false } = {}) {
   }
   ok('Banco de dados (SQLite)');
 }
-
-module.exports = { ensureEnvironment, pathWarnings };

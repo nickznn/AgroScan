@@ -2,18 +2,18 @@
 // Uso: com o backend rodando, `npm run smoke`   (BASE=http://outro-host:4000 para mudar o alvo)
 // Cria 2 contas descartáveis (smoke...@agroscan.test) e APAGA tudo delas no final
 // (as tabelas filhas somem junto por causa do ON DELETE CASCADE), inclusive as fotos enviadas.
-const fs = require('fs');
-const path = require('path');
-const Database = require('better-sqlite3');
+import fs from 'fs';
+import path from 'path';
+import Database from 'better-sqlite3';
 
 const BASE = process.env.BASE || 'http://localhost:4000';
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'agroscan.db');
 const UPLOADS = path.join(__dirname, '..', 'uploads');
 
 let pass = 0;
-const failures = [];
+const failures: string[] = [];
 
-function check(name, cond, extra = '') {
+function check(name: string, cond: unknown, extra = ''): void {
   if (cond) {
     pass++;
   } else {
@@ -28,10 +28,21 @@ const PNG = Buffer.from(
   'base64'
 );
 
-async function api(route, { method = 'GET', token, json, form } = {}) {
-  const headers = {};
+interface ApiOptions {
+  method?: string;
+  token?: string;
+  json?: unknown;
+  form?: FormData;
+}
+
+// O corpo das respostas é verificado campo a campo nos testes, então fica sem tipo fixo.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiResult = { status: number; body: any };
+
+async function api(route: string, { method = 'GET', token, json, form }: ApiOptions = {}): Promise<ApiResult> {
+  const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  let body;
+  let body: string | FormData | undefined;
   if (json) {
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(json);
@@ -40,7 +51,7 @@ async function api(route, { method = 'GET', token, json, form } = {}) {
   }
   const res = await fetch(BASE + route, { method, headers, body });
   const text = await res.text();
-  let data = null;
+  let data: unknown = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
@@ -49,25 +60,29 @@ async function api(route, { method = 'GET', token, json, form } = {}) {
   return { status: res.status, body: data };
 }
 
-function pngForm(field = 'photo') {
+function pngForm(field = 'photo'): FormData {
   const f = new FormData();
   f.append(field, new Blob([PNG], { type: 'image/png' }), 'x.png');
   return f;
 }
 
 // Remove as contas de teste e os arquivos de foto delas.
-function cleanup() {
-  let db;
+function cleanup(): number {
+  let db: Database.Database | undefined;
   try {
     db = new Database(DB_FILE, { fileMustExist: true });
-    const users = db.prepare("SELECT id, avatar_url, farm_photo_url FROM users WHERE email LIKE 'smoke%@agroscan.test'").all();
+    const users = db
+      .prepare("SELECT id, avatar_url, farm_photo_url FROM users WHERE email LIKE 'smoke%@agroscan.test'")
+      .all() as { id: number; avatar_url: string | null; farm_photo_url: string | null }[];
     if (!users.length) return 0;
     const ids = users.map((u) => u.id);
     const marks = ids.map(() => '?').join(',');
-    const files = [
-      ...users.flatMap((u) => [u.avatar_url, u.farm_photo_url]),
-      ...db.prepare(`SELECT photo_url FROM detections WHERE user_id IN (${marks})`).all(...ids).map((d) => d.photo_url),
-    ].filter(Boolean);
+    const photos = db.prepare(`SELECT photo_url FROM detections WHERE user_id IN (${marks})`).all(...ids) as {
+      photo_url: string | null;
+    }[];
+    const files = [...users.flatMap((u) => [u.avatar_url, u.farm_photo_url]), ...photos.map((d) => d.photo_url)].filter(
+      (f): f is string => !!f
+    );
     db.prepare(`DELETE FROM users WHERE id IN (${marks})`).run(...ids);
     for (const f of files) fs.rmSync(path.join(UPLOADS, path.basename(f)), { force: true });
     return users.length;
@@ -76,7 +91,7 @@ function cleanup() {
   }
 }
 
-async function run() {
+async function run(): Promise<void> {
   const stamp = Date.now();
   const email = `smoke${stamp}@agroscan.test`;
   const email2 = `smoke2_${stamp}@agroscan.test`;
@@ -90,7 +105,7 @@ async function run() {
   console.log('> auth');
   r = await api('/auth/register', { method: 'POST', json: { email, password: 'senha1234', farmName: 'Fazenda Smoke' } });
   check('register 201', r.status === 201, JSON.stringify(r.body));
-  const token = r.body?.token;
+  const token: string | undefined = r.body?.token;
   check('register devolve token', !!token);
   check('register devolve farmName digitado', r.body?.user?.farmName === 'Fazenda Smoke');
   check('register: avatar/capa nulos', r.body?.user?.avatarUrl === null && r.body?.user?.farmPhotoUrl === null);
@@ -124,7 +139,7 @@ async function run() {
   console.log('> sectors');
   r = await api('/sectors', { token });
   check('setores: 4 de exemplo', r.status === 200 && r.body.sectors.length === 4);
-  const sectorNames = r.body.sectors.map((s) => s.name);
+  const sectorNames: string[] = r.body.sectors.map((s: { name: string }) => s.name);
 
   console.log('> detections');
   r = await api('/detections', { token });
@@ -154,12 +169,13 @@ async function run() {
   check('ordens: 3 de exemplo', r.status === 200 && r.body.orders.length === 3);
   r = await api('/orders', { method: 'POST', token, json: { product: 'Fungicida Smoke', sector: 'Setor 4', crop: 'Soja' } });
   check('criar ordem 201 pending', r.status === 201 && r.body.order.status === 'pending');
-  const oid = r.body?.order?.id;
+  const oid: string | undefined = r.body?.order?.id;
   r = await api('/orders', { method: 'POST', token, json: { product: 'Outra', sector: 'Setor 2', crop: 'Milho' } });
   check('criar 2a ordem 201', r.status === 201);
   r = await api('/orders', { method: 'POST', token, json: { product: 'x' } });
   check('criar ordem incompleta 400', r.status === 400);
-  for (const [st, code] of [['in_progress', 200], ['completed', 200], ['pending', 200], ['xxx', 400]]) {
+  const transitions: [string, number][] = [['in_progress', 200], ['completed', 200], ['pending', 200], ['xxx', 400]];
+  for (const [st, code] of transitions) {
     r = await api(`/orders/${oid}`, { method: 'PATCH', token, json: { status: st } });
     check(`PATCH ordem -> ${st} (${code})`, r.status === code && (code !== 200 || r.body.order.status === st));
   }
@@ -167,7 +183,7 @@ async function run() {
   check('PATCH ordem inexistente 404', r.status === 404);
   r = await api('/orders', { token });
   check('ordens agora 5', r.body.orders.length === 5);
-  const codes = r.body.orders.map((o) => o.code);
+  const codes: string[] = r.body.orders.map((o: { code: string }) => o.code);
   check('codigos das ordens sao unicos', new Set(codes).size === codes.length, codes.join(','));
 
   console.log('> fotos de perfil');
@@ -188,9 +204,9 @@ async function run() {
 
   console.log('> isolamento entre usuarios');
   r = await api('/auth/register', { method: 'POST', json: { email: email2, password: 'senha1234', farmName: 'Outra' } });
-  const token2 = r.body.token;
+  const token2: string = r.body.token;
   r = await api('/orders', { token: token2 });
-  check('usuario 2 nao ve ordem do usuario 1', !r.body.orders.some((o) => o.id === oid) && r.body.orders.length === 3);
+  check('usuario 2 nao ve ordem do usuario 1', !r.body.orders.some((o: { id: string }) => o.id === oid) && r.body.orders.length === 3);
   r = await api(`/orders/${oid}`, { method: 'PATCH', token: token2, json: { status: 'completed' } });
   check('usuario 2 nao altera ordem do usuario 1 (404)', r.status === 404);
   r = await api('/detections', { token: token2 });
@@ -200,7 +216,7 @@ async function run() {
 }
 
 (async () => {
-  let crashed = null;
+  let crashed: unknown = null;
   try {
     await run();
   } catch (e) {
@@ -210,10 +226,10 @@ async function run() {
   try {
     removed = cleanup();
   } catch (e) {
-    console.log('Aviso: não consegui limpar as contas de teste:', e.message);
+    console.log('Aviso: não consegui limpar as contas de teste:', (e as Error).message);
   }
   if (crashed) {
-    console.error('\nERRO NO TESTE (o servidor está rodando em ' + BASE + '?)', crashed.message);
+    console.error('\nERRO NO TESTE (o servidor está rodando em ' + BASE + '?)', (crashed as Error).message);
     process.exit(2);
   }
   console.log(`\nRESULTADO: ${pass} verificações ok, ${failures.length} falhas  (${removed} contas de teste removidas)`);

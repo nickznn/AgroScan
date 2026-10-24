@@ -2,24 +2,26 @@
 // npm run api       -> sobe só o backend
 // npm run doctor    -> diagnóstico do ambiente (para mandar no grupo quando algo não funciona)
 // Opções: --ip=192.168.0.10  força o IP mostrado no QR Code (útil se o computador tem várias redes)
-const { spawn, execSync } = require('child_process');
-const os = require('os');
-const path = require('path');
-const {
+import { ChildProcess, execSync, spawn } from 'child_process';
+import os from 'os';
+import path from 'path';
+import {
   ROOT, BACKEND, API_PORT, METRO_PORT, c, ok, warn, fail, info,
-  nodeStatus, hasDeps, sqliteStatus, resolveExpoCli, lanCandidates, pickLanIp,
+  nodeStatus, hasDeps, sqliteStatus, resolveExpoCli, resolveBackendTsx, lanCandidates, pickLanIp,
   portInUse, isAgroscanApi, gitCommit, portHelp, firewallCheck,
-} = require('./lib');
-const { ensureEnvironment, pathWarnings } = require('./ensure');
+} from './lib';
+import { ensureEnvironment, pathWarnings } from './ensure';
 
 const args = process.argv.slice(2);
 const mode = args.find((a) => !a.startsWith('--')) || 'lan';
 const forcedIp = (args.find((a) => a.startsWith('--ip=')) || '').slice(5) || process.env.AGROSCAN_IP || '';
 
-let backendProc = null;
+type BackendProcess = ChildProcess & { output: string[]; ready?: boolean };
+
+let backendProc: BackendProcess | null = null;
 let shuttingDown = false;
 
-function shutdown(code = 0) {
+function shutdown(code = 0): void {
   if (shuttingDown) return;
   shuttingDown = true;
   if (backendProc && !backendProc.killed) backendProc.kill();
@@ -29,16 +31,21 @@ process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
 // ------------------------------------------------------------------ backend
-function startBackend() {
-  const output = [];
-  const proc = spawn(process.execPath, [path.join(BACKEND, 'src', 'index.js')], {
+function startBackend(): BackendProcess {
+  if (!resolveBackendTsx()) {
+    fail('Não encontrei o tsx do backend. Rode:  npm run setup -- --clean');
+    process.exit(1);
+  }
+  const output: string[] = [];
+  // "node --import tsx" (e não o comando tsx) mantém um único processo: encerrar o backend no Windows mata o servidor de verdade.
+  const proc = spawn(process.execPath, ['--import', 'tsx', path.join('src', 'index.ts')], {
     cwd: BACKEND,
     env: { ...process.env, PORT: String(API_PORT) },
     stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const forward = (stream, isErr) => {
+  }) as BackendProcess;
+  const forward = (stream: NodeJS.ReadableStream, isErr: boolean) => {
     stream.setEncoding('utf8');
-    stream.on('data', (chunk) => {
+    stream.on('data', (chunk: string) => {
       for (const line of chunk.split(/\r?\n/)) {
         if (!line.trim() || /injected env/.test(line)) continue;
         output.push(line);
@@ -47,20 +54,20 @@ function startBackend() {
       }
     });
   };
-  forward(proc.stdout, false);
-  forward(proc.stderr, true);
+  forward(proc.stdout as NodeJS.ReadableStream, false);
+  forward(proc.stderr as NodeJS.ReadableStream, true);
   proc.output = output;
   return proc;
 }
 
-async function waitForBackend(proc) {
-  const exited = new Promise((resolve) => proc.once('exit', (code) => resolve(code)));
+async function waitForBackend(proc: BackendProcess): Promise<boolean> {
+  const exited = new Promise<number | null>((resolve) => proc.once('exit', (code) => resolve(code)));
   for (let i = 0; i < 70; i++) {
     if (await isAgroscanApi()) {
       proc.ready = true;
       return true;
     }
-    const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r(undefined), 300))]);
+    const code = await Promise.race([exited, new Promise<undefined>((r) => setTimeout(() => r(undefined), 300))]);
     if (code !== undefined) {
       fail(`O backend encerrou logo ao iniciar (código ${code}).`);
       console.log(c.dim(proc.output.join('\n')));
@@ -74,10 +81,10 @@ async function waitForBackend(proc) {
 }
 
 // ------------------------------------------------------------------ doctor
-async function doctor() {
+async function doctor(): Promise<void> {
   console.log(c.bold('\nAgroScan — diagnóstico do ambiente\n'));
-  const lines = [];
-  const note = (label, value) => lines.push(`${label.padEnd(27)} ${value}`);
+  const lines: string[] = [];
+  const note = (label: string, value: string) => lines.push(`${label.padEnd(27)} ${value}`);
   let problems = 0;
 
   note('Sistema', `${os.type()} ${os.release()} (${os.arch()})`);
@@ -96,7 +103,7 @@ async function doctor() {
   }
 
   const rootDeps = hasDeps(ROOT) && !!resolveExpoCli();
-  const backDeps = hasDeps(BACKEND);
+  const backDeps = hasDeps(BACKEND) && !!resolveBackendTsx();
   note('Dependências do app', rootDeps ? 'instaladas' : 'FALTAM  -> rode: npm run setup');
   note('Dependências do backend', backDeps ? 'instaladas' : 'FALTAM  -> rode: npm run setup');
   if (!rootDeps) problems++;
@@ -123,16 +130,15 @@ async function doctor() {
   for (const l of lines) console.log('  ' + l);
   console.log('');
 
-  let fw = null;
   if (process.platform === 'win32') {
     console.log(c.dim('Conferindo o Firewall do Windows (pode levar até 1 minuto na primeira vez)...'));
-    fw = await firewallCheck(70000);
+    const fw = await firewallCheck(70000);
     if (!fw) warn('Não consegui ler o Firewall do Windows (sem problema; só não foi possível conferir).');
     else if (fw.level === 'ok') ok(fw.text);
     else {
       warn(fw.text);
       console.log('        Para corrigir, abra o PowerShell COMO ADMINISTRADOR e rode:');
-      for (const cmd of fw.fix) console.log('          ' + cmd);
+      for (const cmd of fw.fix || []) console.log('          ' + cmd);
       console.log('        (ou, mais simples: ligue o hotspot do celular e, quando o Windows perguntar, marque redes privadas E públicas)');
       if (fw.level === 'warn') problems++;
     }
@@ -151,7 +157,7 @@ async function doctor() {
 }
 
 // ------------------------------------------------------------------ main
-async function main() {
+async function main(): Promise<void> {
   if (mode === 'doctor') return doctor();
   if (!['lan', 'api'].includes(mode)) {
     fail(`Modo desconhecido: ${mode}. Use:  npm run dev  |  npm run api  |  npm run doctor`);
@@ -171,13 +177,14 @@ async function main() {
     }
   } else {
     info('Iniciando o backend...');
-    backendProc = startBackend();
-    if (!(await waitForBackend(backendProc))) shutdown(1);
+    const proc = startBackend();
+    backendProc = proc;
+    if (!(await waitForBackend(proc))) shutdown(1);
     ok(`Backend no ar na porta ${API_PORT}`);
-    backendProc.once('exit', (code) => {
+    proc.once('exit', (code) => {
       if (!shuttingDown) {
         fail(`O backend parou sozinho (código ${code}). O login no app vai falhar até você reiniciar:  npm run dev`);
-        console.log(c.dim(backendProc.output.slice(-8).join('\n')));
+        console.log(c.dim(proc.output.slice(-8).join('\n')));
       }
     });
   }
@@ -188,7 +195,7 @@ async function main() {
   if (mode === 'api') {
     console.log('');
     console.log(`  Backend rodando em http://${ip || 'localhost'}:${API_PORT}  (Ctrl+C para parar)`);
-    if (!backendProc) shutdown(0);
+    if (!backendProc) return shutdown(0);
     backendProc.on('exit', (code) => shutdown(code || 0));
     return;
   }
@@ -196,7 +203,7 @@ async function main() {
   const expoCli = resolveExpoCli();
   if (!expoCli) {
     fail('O Expo não foi encontrado. Rode:  npm run setup -- --clean');
-    shutdown(1);
+    return shutdown(1);
   }
 
   console.log('');
@@ -219,7 +226,7 @@ async function main() {
   console.log(c.bold('  ==============================================================='));
   console.log('');
 
-  const env = { ...process.env };
+  const env: NodeJS.ProcessEnv = { ...process.env };
   if (ip) env.REACT_NATIVE_PACKAGER_HOSTNAME = ip;
   const expo = spawn(process.execPath, [expoCli, 'start'], { cwd: ROOT, env, stdio: 'inherit' });
   expo.on('exit', (code) => shutdown(code || 0));

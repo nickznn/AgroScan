@@ -1,7 +1,7 @@
 // npm run setup            -> instala tudo e confere o ambiente
 // npm run setup -- --clean -> apaga node_modules (app e backend) e instala do zero
-const { ensureEnvironment } = require('./ensure');
-const { c } = require('./lib');
+import { ensureEnvironment } from './ensure';
+import { c } from './lib';
 
 (async () => {
   console.log(c.bold('\nAgroScan — preparando o ambiente\n'));

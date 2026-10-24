@@ -1,6 +1,6 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 
 // A pasta data/ não vai pro git (só o .db dentro dela é ignorado); num clone novo ela não existe
 // e o SQLite se recusa a abrir o arquivo, então é criada aqui.
@@ -70,7 +70,7 @@ db.exec(`
 
 // Migração leve: adiciona colunas novas em bancos já existentes (SQLite não tem
 // "ADD COLUMN IF NOT EXISTS", então checamos o schema atual antes de alterar).
-const userColumns = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
+const userColumns = (db.prepare('PRAGMA table_info(users)').all() as { name: string }[]).map((c) => c.name);
 if (!userColumns.includes('avatar_url')) {
   db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
 }
@@ -78,4 +78,4 @@ if (!userColumns.includes('farm_photo_url')) {
   db.exec('ALTER TABLE users ADD COLUMN farm_photo_url TEXT');
 }
 
-module.exports = db;
+export default db;

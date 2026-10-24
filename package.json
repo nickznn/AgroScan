@@ -30,18 +30,21 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/react": "~19.2.2",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "setup": "node scripts/setup.js",
-    "dev": "node scripts/dev.js",
-    "api": "node scripts/dev.js api",
-    "doctor": "node scripts/dev.js doctor",
+    "setup": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/setup.ts",
+    "dev": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts",
+    "api": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts api",
+    "doctor": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts doctor",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts && tsc --noEmit -p backend"
   },
   "private": true,
   "engines": {

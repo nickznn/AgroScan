@@ -1,12 +1,13 @@
-const express = require('express');
-const crypto = require('crypto');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
-const { upload, absoluteUrl } = require('../upload');
+import express, { Request } from 'express';
+import crypto from 'crypto';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
+import { upload, absoluteUrl } from '../upload';
+import { DetectionRow, PestRow, SectorRow } from '../types';
 
 const router = express.Router();
 
-function rowToDetection(req, row) {
+function rowToDetection(req: Request, row: DetectionRow) {
   return {
     id: row.id,
     confidence: row.confidence,
@@ -37,15 +38,15 @@ const SELECT_JOIN = `
 `;
 
 router.get('/', requireAuth, (req, res) => {
-  const rows = db.prepare(`${SELECT_JOIN} WHERE d.user_id = ? ORDER BY d.timestamp DESC`).all(req.userId);
+  const rows = db.prepare(`${SELECT_JOIN} WHERE d.user_id = ? ORDER BY d.timestamp DESC`).all(req.userId) as DetectionRow[];
   res.json({ detections: rows.map((r) => rowToDetection(req, r)) });
 });
 
 // A "análise de IA" é simulada no servidor: sorteia uma praga do catálogo e gera métricas plausíveis.
 router.post('/', requireAuth, upload.single('photo'), (req, res) => {
-  const pests = db.prepare('SELECT * FROM pests').all();
+  const pests = db.prepare('SELECT * FROM pests').all() as PestRow[];
   const pest = pests[Math.floor(Math.random() * pests.length)];
-  const sectors = db.prepare('SELECT * FROM sectors WHERE user_id = ?').all(req.userId);
+  const sectors = db.prepare('SELECT * FROM sectors WHERE user_id = ?').all(req.userId) as SectorRow[];
   const sector = sectors.length ? sectors[Math.floor(Math.random() * sectors.length)] : null;
 
   const confidence = 60 + Math.random() * 39;
@@ -62,8 +63,8 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(id, req.userId, pest.id, confidence, sector ? sector.name : 'Setor não identificado', timestamp, photoUrl, affectedArea, stage, offline ? 1 : 0);
 
-  const row = db.prepare(`${SELECT_JOIN} WHERE d.id = ?`).get(id);
+  const row = db.prepare(`${SELECT_JOIN} WHERE d.id = ?`).get(id) as DetectionRow;
   res.status(201).json({ detection: rowToDetection(req, row) });
 });
 
-module.exports = router;
+export default router;
