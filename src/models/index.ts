@@ -55,3 +55,9 @@ export interface User {
   avatarUrl: string | null;
   farmPhotoUrl: string | null;
 }
+
+// Resultado de um comando do ViewModel: a View decide como mostrar o erro (Alert, texto, etc.).
+export type Result<T = void> = { ok: true; data: T } | { ok: false; error: string };
+
+// De onde vem uma foto de perfil/capa.
+export type PhotoSource = 'camera' | 'gallery';

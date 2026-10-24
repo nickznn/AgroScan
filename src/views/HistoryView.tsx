@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -7,10 +7,10 @@ import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
 import { SeverityBadge } from '../components/StatusBadge';
-import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
 import { formatDateTime } from '../utils/format';
-import { Severity } from '../types';
+import { Severity } from '../models';
+import { useHistoryViewModel } from '../viewmodels/useHistoryViewModel';
 
 const FILTERS: { key: Severity; label: string }[] = [
   { key: 'critical', label: 'Alta' },
@@ -18,26 +18,9 @@ const FILTERS: { key: Severity; label: string }[] = [
   { key: 'low', label: 'Baixa' },
 ];
 
-export function HistoryScreen() {
-  const { history } = useApp();
+export function HistoryView() {
+  const { query, setQuery, activeFilters, toggleFilter, filtered } = useHistoryViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [query, setQuery] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Severity[]>([]);
-
-  const toggleFilter = (key: Severity) => {
-    setActiveFilters((prev) => (prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]));
-  };
-
-  const filtered = useMemo(() => {
-    return history.filter((item) => {
-      const matchesQuery =
-        !query ||
-        item.pest.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.sector.toLowerCase().includes(query.toLowerCase());
-      const matchesSeverity = activeFilters.length === 0 || activeFilters.includes(item.pest.severity);
-      return matchesQuery && matchesSeverity;
-    });
-  }, [history, query, activeFilters]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

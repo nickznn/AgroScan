@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,9 +6,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
-import { DetectionResult, Crop, Severity } from '../types';
+import { Crop, Severity } from '../models';
+import { useMapViewModel } from '../viewmodels/useMapViewModel';
 
 const CROPS: (Crop | 'Todas')[] = ['Todas', 'Soja', 'Milho', 'Algodão', 'Café'];
 
@@ -20,51 +20,9 @@ const SEVERITY_COLOR: Record<Severity, string> = {
 
 const MAP_SIZE = 320;
 
-// Posição estável (não muda a cada render) derivada do id da detecção.
-// Ids parecidos (ex: "seed-1" vs "seed-2") precisam cair em pontos bem diferentes do mapa,
-// então o hash passa por um finalizador de avalanche (mistura bits) antes de gerar a posição.
-function hashToUnit(id: string, salt: number): number {
-  let hash = salt;
-  for (let i = 0; i < id.length; i++) {
-    hash = Math.imul(hash ^ id.charCodeAt(i), 0x01000193) | 0;
-  }
-  hash ^= hash >>> 16;
-  hash = Math.imul(hash, 0x85ebca6b) | 0;
-  hash ^= hash >>> 13;
-  hash = Math.imul(hash, 0xc2b2ae35) | 0;
-  hash ^= hash >>> 16;
-  return (hash >>> 0) / 0xffffffff;
-}
-
-function positionFor(item: DetectionResult) {
-  const x = 0.12 + hashToUnit(item.id, 17) * 0.76;
-  const y = 0.12 + hashToUnit(item.id, 91) * 0.76;
-  return { x, y };
-}
-
-export function MapScreen() {
-  const { history } = useApp();
+export function MapView() {
+  const { cropFilter, setCropFilter, points, selected, select: setSelectedId, counts } = useMapViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [cropFilter, setCropFilter] = useState<Crop | 'Todas'>('Todas');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const points = useMemo(() => {
-    return history
-      .filter((item) => cropFilter === 'Todas' || item.pest.crop === cropFilter)
-      .map((item) => ({ item, ...positionFor(item) }));
-  }, [history, cropFilter]);
-
-  const selected = points.find((p) => p.item.id === selectedId)?.item;
-
-  const counts = useMemo(() => {
-    return points.reduce(
-      (acc, p) => {
-        acc[p.item.pest.severity] += 1;
-        return acc;
-      },
-      { critical: 0, moderate: 0, low: 0 } as Record<Severity, number>
-    );
-  }, [points]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

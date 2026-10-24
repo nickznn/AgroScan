@@ -1,53 +1,41 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { Button } from '../components/Button';
-import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
+import { Result } from '../models';
+import { useScannerViewModel } from '../viewmodels/useScannerViewModel';
 
-export function ScannerScreen() {
+export function ScannerView() {
+  // A câmera é hardware da interface: a View pede a permissão e tira a foto; o ViewModel cuida do envio e da análise.
   const [permission, requestPermission] = useCameraPermissions();
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { addDetection } = useApp();
+  const { photoUri, analyzing, analyze, analyzeFromLibrary } = useScannerViewModel();
 
-  const runAnalysis = async (uri: string | null) => {
-    setPhotoUri(uri);
-    setAnalyzing(true);
-    try {
-      const detection = await addDetection(uri);
-      navigation.navigate('ReportDetail', { id: detection.id });
-    } catch (err) {
-      Alert.alert('Erro ao analisar', err instanceof Error ? err.message : 'Tente novamente.');
-    } finally {
-      setAnalyzing(false);
-      setPhotoUri(null);
-    }
+  const showOutcome = (result: Result<string> | null) => {
+    if (!result) return;
+    if (result.ok) navigation.navigate('ReportDetail', { id: result.data });
+    else Alert.alert('Erro ao analisar', result.error);
   };
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
+    let uri: string | null = null;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.6 });
-      await runAnalysis(photo?.uri ?? null);
+      uri = photo?.uri ?? null;
     } catch {
-      await runAnalysis(null);
+      // sem foto: a análise segue assim mesmo, como antes
     }
+    showOutcome(await analyze(uri));
   };
 
-  const pickFromLibrary = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6 });
-    if (!result.canceled) {
-      await runAnalysis(result.assets[0].uri);
-    }
-  };
+  const pickFromLibrary = async () => showOutcome(await analyzeFromLibrary());
 
   if (analyzing) {
     return (

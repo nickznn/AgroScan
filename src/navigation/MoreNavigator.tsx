@@ -1,22 +1,22 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MoreStackParamList } from './types';
-import { MoreMenuScreen } from '../screens/MoreMenuScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
-import { FarmScreen } from '../screens/FarmScreen';
-import { OrdersScreen } from '../screens/OrdersScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { MoreMenuView } from '../views/MoreMenuView';
+import { ProfileView } from '../views/ProfileView';
+import { FarmView } from '../views/FarmView';
+import { OrdersView } from '../views/OrdersView';
+import { SettingsView } from '../views/SettingsView';
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
 
 export function MoreNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MoreMenu" component={MoreMenuScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Farm" component={FarmScreen} />
-      <Stack.Screen name="Orders" component={OrdersScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="MoreMenu" component={MoreMenuView} />
+      <Stack.Screen name="Profile" component={ProfileView} />
+      <Stack.Screen name="Farm" component={FarmView} />
+      <Stack.Screen name="Orders" component={OrdersView} />
+      <Stack.Screen name="Settings" component={SettingsView} />
     </Stack.Navigator>
   );
 }

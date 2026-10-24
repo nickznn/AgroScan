@@ -7,17 +7,16 @@ import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
 import { formatDateTime } from '../utils/format';
+import { useReportDetailViewModel } from '../viewmodels/useReportDetailViewModel';
 
 const severityColor = { critical: colors.error, moderate: colors.warning, low: colors.success } as const;
 
-export function ReportDetailScreen() {
-  const { history, orders } = useApp();
+export function ReportDetailView() {
   const route = useRoute<RouteProp<RootStackParamList, 'ReportDetail'>>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const item = history.find((h) => h.id === route.params.id);
+  const { item, ordersCount, severityLabel, stageMain, stageDetail } = useReportDetailViewModel(route.params.id);
 
   // "initial: false" mantém o menu "Mais" como base da pilha e coloca as Ordens por cima.
   // Sem isso a pilha do Mais ficava só com "Ordens": a seta de voltar não tinha para onde ir,
@@ -62,7 +61,7 @@ export function ReportDetailScreen() {
             <View style={styles.severityPill}>
               <MaterialIcons name="warning" size={16} color={severityColor[item.pest.severity]} />
               <Text style={[typography.labelCaps, { color: severityColor[item.pest.severity], marginLeft: 6 }]}>
-                SEVERIDADE: {item.pest.severity === 'critical' ? 'ALTA' : item.pest.severity === 'moderate' ? 'MÉDIA' : 'BAIXA'}
+                SEVERIDADE: {severityLabel}
               </Text>
             </View>
             <Text style={typography.bodySm}>{formatDateTime(item.timestamp)}</Text>
@@ -80,8 +79,8 @@ export function ReportDetailScreen() {
             </View>
             <View style={styles.statBox}>
               <Text style={typography.labelCaps}>ESTÁGIO</Text>
-              <Text style={[typography.headlineMd, { marginTop: 4 }]}>{item.stage.split(' ')[0]}</Text>
-              <Text style={typography.bodySm}>{item.stage.split(' ').slice(1).join(' ')}</Text>
+              <Text style={[typography.headlineMd, { marginTop: 4 }]}>{stageMain}</Text>
+              <Text style={typography.bodySm}>{stageDetail}</Text>
             </View>
           </View>
         </Card>
@@ -96,7 +95,7 @@ export function ReportDetailScreen() {
         </Card>
 
         <Text style={[typography.bodySm, { color: colors.outline, textAlign: 'center', marginTop: 16 }]}>
-          {orders.length} ordens de serviço ativas na fazenda · Setor: {item.sector}
+          {ordersCount} ordens de serviço ativas na fazenda · Setor: {item.sector}
         </Text>
       </ScrollView>
     </View>

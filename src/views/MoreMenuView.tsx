@@ -5,8 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { useApp } from '../context/AppContext';
 import { MoreStackParamList } from '../navigation/types';
+import { useMoreMenuViewModel } from '../viewmodels/useMoreMenuViewModel';
 
 const ITEMS: { key: keyof MoreStackParamList; label: string; icon: keyof typeof MaterialIcons.glyphMap; description: string }[] = [
   { key: 'Farm', label: 'Fazenda', icon: 'landscape', description: 'Setores monitorados e saúde da lavoura' },
@@ -14,9 +14,9 @@ const ITEMS: { key: keyof MoreStackParamList; label: string; icon: keyof typeof 
   { key: 'Settings', label: 'Configurações', icon: 'settings', description: 'Sincronização e mapas offline' },
 ];
 
-export function MoreMenuScreen() {
+export function MoreMenuView() {
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const { user } = useApp();
+  const { displayName, farmName, avatarUrl } = useMoreMenuViewModel();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -24,15 +24,15 @@ export function MoreMenuScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable style={styles.profile} onPress={() => navigation.navigate('Profile')}>
           <View style={styles.avatar}>
-            {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             ) : (
               <MaterialIcons name="person" size={28} color={colors.onPrimary} />
             )}
           </View>
           <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={typography.titleMd}>{user?.name ?? 'Produtor'}</Text>
-            <Text style={typography.bodySm}>{user?.farmName ?? 'Fazenda Bela Vista'}</Text>
+            <Text style={typography.titleMd}>{displayName}</Text>
+            <Text style={typography.bodySm}>{farmName}</Text>
           </View>
           <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
         </Pressable>

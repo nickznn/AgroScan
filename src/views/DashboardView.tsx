@@ -8,23 +8,17 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { SeverityBadge } from '../components/StatusBadge';
-import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
 import { formatRelativeTime } from '../utils/format';
+import { useDashboardViewModel } from '../viewmodels/useDashboardViewModel';
 
-export function DashboardScreen() {
-  const { user, history, sectors } = useApp();
+export function DashboardView() {
+  const { firstName, avgHealth, recent, hasOfflineItems } = useDashboardViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const firstName = user?.name?.split(/[.\s]/)[0] || 'Produtor';
-  const recent = history.slice(0, 3);
-
-  const avgHealth = sectors.length
-    ? Math.round(sectors.reduce((sum, s) => sum + s.healthScore, 0) / sectors.length)
-    : 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="AgroScan AI" showSync offline={history.some((h) => h.offline)} />
+      <ScreenHeader title="AgroScan AI" showSync offline={hasOfflineItems} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={typography.headlineLg}>Bom dia, {firstName}.</Text>
         <Text style={[typography.bodyMd, styles.subtitle]}>

@@ -3,16 +3,16 @@ import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
-import { LoginScreen } from '../screens/LoginScreen';
-import { ReportDetailScreen } from '../screens/ReportDetailScreen';
+import { LoginView } from '../views/LoginView';
+import { ReportDetailView } from '../views/ReportDetailView';
 import { MainTabs } from './MainTabs';
-import { useApp } from '../context/AppContext';
+import { useRootViewModel } from '../viewmodels/useRootViewModel';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { user, isLoading } = useApp();
+  const { isLoggedIn, isLoading } = useRootViewModel();
 
   if (isLoading) {
     return (
@@ -25,13 +25,13 @@ export function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
+        {isLoggedIn ? (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
+            <Stack.Screen name="ReportDetail" component={ReportDetailView} />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Login" component={LoginView} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

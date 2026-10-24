@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, radius, typography } from '../theme';
-import { Severity } from '../types';
+import { Severity } from '../models';
 
 const SEVERITY_MAP: Record<Severity, { bg: string; fg: string; label: string; dot: string }> = {
   critical: { bg: colors.errorContainer, fg: colors.onErrorContainer, label: 'ALTA PRIORIDADE', dot: colors.error },

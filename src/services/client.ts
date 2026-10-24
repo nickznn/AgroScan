@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { NativeModules } from 'react-native';
 import { File } from 'expo-file-system';
-import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../types';
+import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
 
 const API_URL_KEY = 'agroscan:apiUrl';
 const TOKEN_KEY = 'agroscan:token';

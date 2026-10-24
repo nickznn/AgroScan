@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../types';
-import * as api from '../api/client';
+import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
+import * as api from '../services/client';
 
 interface AppContextValue {
   user: User | null;

@@ -2,10 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MainTabParamList } from './types';
-import { DashboardScreen } from '../screens/DashboardScreen';
-import { ScannerScreen } from '../screens/ScannerScreen';
-import { MapScreen } from '../screens/MapScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
+import { DashboardView } from '../views/DashboardView';
+import { ScannerView } from '../views/ScannerView';
+import { MapView } from '../views/MapView';
+import { HistoryView } from '../views/HistoryView';
 import { MoreNavigator } from './MoreNavigator';
 import { colors } from '../theme';
 
@@ -41,10 +41,10 @@ export function MainTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={DashboardScreen} />
-      <Tab.Screen name="Scanner" component={ScannerScreen} />
-      <Tab.Screen name="Maps" component={MapScreen} />
-      <Tab.Screen name="Reports" component={HistoryScreen} />
+      <Tab.Screen name="Home" component={DashboardView} />
+      <Tab.Screen name="Scanner" component={ScannerView} />
+      <Tab.Screen name="Maps" component={MapView} />
+      <Tab.Screen name="Reports" component={HistoryView} />
       <Tab.Screen name="More" component={MoreNavigator} />
     </Tab.Navigator>
   );

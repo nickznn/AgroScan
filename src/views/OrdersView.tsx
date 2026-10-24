@@ -7,11 +7,11 @@ import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { useApp } from '../context/AppContext';
 import { MoreStackParamList } from '../navigation/types';
-import { OrderStatus } from '../types';
+import { OrderStatus } from '../models';
+import { OrderFilter, useOrdersViewModel } from '../viewmodels/useOrdersViewModel';
 
-const FILTERS: { key: OrderStatus | 'all'; label: string }[] = [
+const FILTERS: { key: OrderFilter; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 'in_progress', label: 'Em Andamento' },
   { key: 'pending', label: 'Pendentes' },
@@ -24,25 +24,17 @@ const STATUS_OPTIONS: { key: OrderStatus; label: string; color: string; bg: stri
   { key: 'completed', label: 'CONCLUÍDA', color: colors.success, bg: '#dcf1e8' },
 ];
 
-export function OrdersScreen() {
-  const { orders, sectors, updateOrderStatus, addOrder } = useApp();
+export function OrdersView() {
+  const vm = useOrdersViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
+  // Se o modal está aberto é estado só da tela; o que vai dentro dele (produto, setor) é do ViewModel.
   const [modalVisible, setModalVisible] = useState(false);
-  const [product, setProduct] = useState('');
-  const [sectorIndex, setSectorIndex] = useState(0);
-  const [saving, setSaving] = useState(false);
-
-  const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
   const handleSetStatus = async (id: string, current: OrderStatus, next: OrderStatus) => {
     if (current === next) return;
     const apply = async () => {
-      try {
-        await updateOrderStatus(id, next);
-      } catch (err) {
-        Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível atualizar a ordem.');
-      }
+      const result = await vm.setStatus(id, next);
+      if (!result.ok) Alert.alert('Erro', result.error);
     };
     if (next === 'completed') {
       Alert.alert('Concluir ordem?', 'Confirma que esta aplicação foi finalizada no campo?', [
@@ -55,41 +47,24 @@ export function OrdersScreen() {
   };
 
   const handleCreateOrder = async () => {
-    if (!product.trim()) {
-      Alert.alert('Informe o defensivo/produto da ordem.');
-      return;
-    }
-    if (sectors.length === 0) {
-      Alert.alert('Nenhum setor disponível ainda.');
-      return;
-    }
-    const sector = sectors[sectorIndex];
-    setSaving(true);
-    try {
-      await addOrder({ product: product.trim(), sector: sector.name, crop: sector.crop });
-      setProduct('');
-      setSectorIndex(0);
-      setModalVisible(false);
-    } catch (err) {
-      Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível criar a ordem.');
-    } finally {
-      setSaving(false);
-    }
+    const result = await vm.createOrder();
+    if (result.ok) setModalVisible(false);
+    else Alert.alert('Erro', result.error);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Ordens de Serviço" onBack={() => navigation.goBack()} />
       <FlatList
-        data={filtered}
+        data={vm.filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.filterRow}>
             {FILTERS.map((f) => {
-              const active = f.key === filter;
+              const active = f.key === vm.filter;
               return (
-                <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
+                <Pressable key={f.key} onPress={() => vm.setFilter(f.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
                   <Text style={[typography.bodySemiBold, active && { color: colors.onPrimary }]}>{f.label}</Text>
                 </Pressable>
               );
@@ -145,24 +120,24 @@ export function OrdersScreen() {
               style={styles.input}
               placeholder="Ex: Fungicida X-700"
               placeholderTextColor={colors.outline}
-              value={product}
-              onChangeText={setProduct}
+              value={vm.product}
+              onChangeText={vm.setProduct}
             />
 
             <Text style={styles.label}>Setor</Text>
             <View style={styles.sectorRow}>
-              {sectors.map((s, index) => (
+              {vm.sectors.map((s, index) => (
                 <Pressable
                   key={s.id}
-                  onPress={() => setSectorIndex(index)}
-                  style={[styles.sectorChip, sectorIndex === index && styles.sectorChipActive]}
+                  onPress={() => vm.setSectorIndex(index)}
+                  style={[styles.sectorChip, vm.sectorIndex === index && styles.sectorChipActive]}
                 >
-                  <Text style={[typography.bodySm, sectorIndex === index && { color: colors.onPrimary }]}>{s.name}</Text>
+                  <Text style={[typography.bodySm, vm.sectorIndex === index && { color: colors.onPrimary }]}>{s.name}</Text>
                 </Pressable>
               ))}
             </View>
 
-            <Button label="CRIAR ORDEM" onPress={handleCreateOrder} loading={saving} style={{ marginTop: 20 }} />
+            <Button label="CRIAR ORDEM" onPress={handleCreateOrder} loading={vm.saving} style={{ marginTop: 20 }} />
             <Button label="CANCELAR" variant="outline" onPress={() => setModalVisible(false)} style={{ marginTop: 12 }} />
           </View>
         </View>

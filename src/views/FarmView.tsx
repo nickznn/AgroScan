@@ -6,9 +6,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
-import { FARM } from '../data/sectors';
 import { MoreStackParamList } from '../navigation/types';
-import { useApp } from '../context/AppContext';
+import { useFarmViewModel } from '../viewmodels/useFarmViewModel';
 
 const STATUS_MAP = {
   optimal: { label: 'Optimal', color: colors.success },
@@ -16,9 +15,9 @@ const STATUS_MAP = {
   syncing: { label: 'Sincronizando', color: colors.secondary },
 };
 
-export function FarmScreen() {
+export function FarmView() {
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const { sectors, user } = useApp();
+  const { sectors, farmName, farmPhotoUrl, farm } = useFarmViewModel();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -26,18 +25,18 @@ export function FarmScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Card>
           <View style={styles.farmImage}>
-            {user?.farmPhotoUrl ? (
-              <Image source={{ uri: user.farmPhotoUrl }} style={styles.farmImagePhoto} />
+            {farmPhotoUrl ? (
+              <Image source={{ uri: farmPhotoUrl }} style={styles.farmImagePhoto} />
             ) : (
               <MaterialIcons name="landscape" size={40} color={colors.secondary} />
             )}
           </View>
-          <Text style={[typography.headlineMd, { marginTop: 12, textAlign: 'center' }]}>{user?.farmName ?? FARM.name}</Text>
+          <Text style={[typography.headlineMd, { marginTop: 12, textAlign: 'center' }]}>{farmName}</Text>
           <Text style={[typography.bodySm, { color: colors.onSurfaceVariant, textAlign: 'center', marginBottom: 12 }]}>
-            {FARM.location} · {FARM.hectares} Hectares
+            {farm.location} · {farm.hectares} Hectares
           </Text>
           <View style={styles.cropRow}>
-            {FARM.crops.map((c) => (
+            {farm.crops.map((c) => (
               <View key={c} style={styles.cropPill}>
                 <Text style={typography.bodySm}>{c}</Text>
               </View>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -7,40 +7,18 @@ import { colors, typography, radius } from '../theme';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { useApp } from '../context/AppContext';
 import { MoreStackParamList } from '../navigation/types';
 import { formatDateTime } from '../utils/format';
-import { getApiUrl, testAndSaveApiUrl } from '../api/client';
+import { useSettingsViewModel } from '../viewmodels/useSettingsViewModel';
 
-const OFFLINE_AREAS = [
-  { id: 1, label: 'Setor 7 - Milho', size: '124 MB' },
-  { id: 2, label: 'Setor 8 - Soja', size: '89 MB' },
-];
-
-export function SettingsScreen() {
-  const { lastSync, isSyncing, syncNow, logout, history } = useApp();
+export function SettingsView() {
+  const vm = useSettingsViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const pendingCount = history.filter((h) => h.offline).length;
-  const [apiUrl, setApiUrlInput] = useState('');
-  const [testing, setTesting] = useState(false);
-
-  useEffect(() => {
-    getApiUrl().then(setApiUrlInput);
-  }, []);
 
   const handleSaveApiUrl = async () => {
-    setTesting(true);
-    try {
-      await testAndSaveApiUrl(apiUrl);
-      Alert.alert('Conectado!', 'Endereço do servidor salvo com sucesso.');
-    } catch (err) {
-      Alert.alert(
-        'Não foi possível conectar',
-        `${err instanceof Error ? err.message : ''} O endereço não foi salvo.`.trim()
-      );
-    } finally {
-      setTesting(false);
-    }
+    const result = await vm.saveApiUrl();
+    if (result.ok) Alert.alert('Conectado!', 'Endereço do servidor salvo com sucesso.');
+    else Alert.alert('Não foi possível conectar', `${result.error} O endereço não foi salvo.`.trim());
   };
 
   return (
@@ -58,26 +36,26 @@ export function SettingsScreen() {
             </View>
             <View style={{ marginLeft: 12 }}>
               <View style={styles.rowStart}>
-                <View style={[styles.dot, { backgroundColor: isSyncing ? colors.warning : colors.success }]} />
-                <Text style={[typography.bodySemiBold, { color: isSyncing ? colors.warning : colors.success }]}>
-                  {isSyncing ? 'SYNCING...' : 'SYNCED'}
+                <View style={[styles.dot, { backgroundColor: vm.isSyncing ? colors.warning : colors.success }]} />
+                <Text style={[typography.bodySemiBold, { color: vm.isSyncing ? colors.warning : colors.success }]}>
+                  {vm.isSyncing ? 'SYNCING...' : 'SYNCED'}
                 </Text>
               </View>
-              <Text style={typography.bodySm}>Última sincronização: {formatDateTime(lastSync)}</Text>
+              <Text style={typography.bodySm}>Última sincronização: {formatDateTime(vm.lastSync)}</Text>
             </View>
           </View>
-          {pendingCount > 0 && (
+          {vm.pendingCount > 0 && (
             <View style={styles.pendingBox}>
               <Text style={typography.bodySm}>
-                {pendingCount} relatório(s) de campo e atualizações do modelo de IA na fila para a próxima sincronização.
+                {vm.pendingCount} relatório(s) de campo e atualizações do modelo de IA na fila para a próxima sincronização.
               </Text>
             </View>
           )}
           <Button
             label="SINCRONIZAR AGORA"
             icon={<MaterialIcons name="sync" size={18} color={colors.onPrimary} />}
-            onPress={syncNow}
-            loading={isSyncing}
+            onPress={vm.syncNow}
+            loading={vm.isSyncing}
             style={{ marginTop: 16 }}
           />
         </Card>
@@ -96,14 +74,14 @@ export function SettingsScreen() {
             placeholderTextColor={colors.outline}
             autoCapitalize="none"
             autoCorrect={false}
-            value={apiUrl}
-            onChangeText={setApiUrlInput}
+            value={vm.apiUrl}
+            onChangeText={vm.setApiUrl}
           />
           <Button
             label="TESTAR E SALVAR"
             variant="outline"
             onPress={handleSaveApiUrl}
-            loading={testing}
+            loading={vm.testing}
             style={{ marginTop: 12 }}
           />
         </Card>
@@ -116,7 +94,7 @@ export function SettingsScreen() {
           <Text style={[typography.bodySm, { color: colors.onSurfaceVariant, marginTop: 4, marginBottom: 12 }]}>
             Áreas baixadas para operação em campo sem internet.
           </Text>
-          {OFFLINE_AREAS.map((area) => (
+          {vm.offlineAreas.map((area) => (
             <View key={area.id} style={styles.offlineRow}>
               <View style={styles.rowStart}>
                 <MaterialIcons name="check" size={18} color={colors.success} />
@@ -131,7 +109,7 @@ export function SettingsScreen() {
           <Button label="BAIXAR NOVA ÁREA" variant="outline" style={{ marginTop: 8 }} onPress={() => {}} />
         </Card>
 
-        <Pressable onPress={logout} style={styles.logoutBtn}>
+        <Pressable onPress={vm.logout} style={styles.logoutBtn}>
           <MaterialIcons name="logout" size={18} color={colors.error} />
           <Text style={[typography.bodySemiBold, { color: colors.error, marginLeft: 8 }]}>Sair da conta</Text>
         </Pressable>

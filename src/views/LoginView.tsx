@@ -1,77 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, radius } from '../theme';
 import { Button } from '../components/Button';
-import { useApp } from '../context/AppContext';
-import { getApiUrl, isReachable, testAndSaveApiUrl } from '../api/client';
+import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
 
-export function LoginScreen() {
-  const { login, register } = useApp();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [farmName, setFarmName] = useState('Fazenda Bela Vista');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Servidor: sem isso, um IP errado impede o login e a única tela pra corrigir (Configurações) fica inacessível.
-  const [showServer, setShowServer] = useState(false);
-  const [apiUrl, setApiUrlInput] = useState('');
-  const [checkingServer, setCheckingServer] = useState(false);
-  const [serverStatus, setServerStatus] = useState<{ ok: boolean; text: string } | null>(null);
-
-  // 'checking' | 'online' | 'offline': o celular consegue falar com o backend neste endereço?
-  const [link, setLink] = useState<'checking' | 'online' | 'offline'>('checking');
-
-  const checkLink = async (url: string) => {
-    setLink('checking');
-    setLink((await isReachable(url, 4000)) ? 'online' : 'offline');
-  };
-
-  useEffect(() => {
-    getApiUrl().then((url) => {
-      setApiUrlInput(url);
-      checkLink(url);
-    });
-  }, []);
-
-  const handleSaveServer = async () => {
-    setCheckingServer(true);
-    setServerStatus(null);
-    try {
-      await testAndSaveApiUrl(apiUrl);
-      setServerStatus({ ok: true, text: 'Conectado! Endereço salvo. Agora é só entrar.' });
-      setError(null);
-      setLink('online');
-    } catch (err) {
-      setServerStatus({ ok: false, text: err instanceof Error ? err.message : 'Não foi possível conectar.' });
-    } finally {
-      setCheckingServer(false);
-    }
-  };
-
-  const canSubmit = email.trim().length > 3 && password.trim().length >= 4;
-
-  const handleSubmit = async () => {
-    if (!canSubmit) {
-      setError('Informe um e-mail e senha válidos (mínimo 4 caracteres).');
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      if (mode === 'login') {
-        await login(email.trim(), password);
-      } else {
-        await register(email.trim(), password, farmName.trim() || 'Minha Fazenda');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível continuar. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
+export function LoginView() {
+  const vm = useLoginViewModel();
+  const { mode, link } = vm;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.primary }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -87,13 +23,13 @@ export function LoginScreen() {
         <View style={styles.card}>
           <View style={styles.tabRow}>
             <Text
-              onPress={() => setMode('login')}
+              onPress={() => vm.setMode('login')}
               style={[styles.tab, mode === 'login' && styles.tabActive]}
             >
               Entrar
             </Text>
             <Text
-              onPress={() => setMode('signup')}
+              onPress={() => vm.setMode('signup')}
               style={[styles.tab, mode === 'signup' && styles.tabActive]}
             >
               Criar conta
@@ -107,8 +43,8 @@ export function LoginScreen() {
             placeholderTextColor={colors.outline}
             autoCapitalize="none"
             keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
+            value={vm.email}
+            onChangeText={vm.setEmail}
           />
 
           <Text style={styles.label}>Senha</Text>
@@ -117,23 +53,23 @@ export function LoginScreen() {
             placeholder="••••••••"
             placeholderTextColor={colors.outline}
             secureTextEntry
-            value={password}
-            onChangeText={setPassword}
+            value={vm.password}
+            onChangeText={vm.setPassword}
           />
 
           {mode === 'signup' && (
             <>
               <Text style={styles.label}>Nome da fazenda</Text>
-              <TextInput style={styles.input} value={farmName} onChangeText={setFarmName} />
+              <TextInput style={styles.input} value={vm.farmName} onChangeText={vm.setFarmName} />
             </>
           )}
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {vm.error && <Text style={styles.error}>{vm.error}</Text>}
 
           <Button
             label={mode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}
-            onPress={handleSubmit}
-            loading={loading}
+            onPress={vm.submit}
+            loading={vm.loading}
             style={{ marginTop: 8 }}
           />
 
@@ -158,20 +94,20 @@ export function LoginScreen() {
             </Text>
           </View>
           {link === 'offline' && (
-            <Pressable onPress={() => getApiUrl().then(checkLink)} style={{ alignSelf: 'center', marginTop: 8 }}>
+            <Pressable onPress={vm.retryLink} style={{ alignSelf: 'center', marginTop: 8 }}>
               <Text style={styles.serverToggleAction}>Tentar de novo</Text>
             </Pressable>
           )}
 
-          <Pressable onPress={() => setShowServer((v) => !v)} style={styles.serverToggle}>
+          <Pressable onPress={vm.toggleServer} style={styles.serverToggle}>
             <MaterialIcons name="dns" size={14} color={colors.outline} />
             <Text style={styles.serverToggleText} numberOfLines={1}>
-              Servidor: {apiUrl || '...'}
+              Servidor: {vm.apiUrl || '...'}
             </Text>
-            <Text style={styles.serverToggleAction}>{showServer ? 'Fechar' : 'Alterar'}</Text>
+            <Text style={styles.serverToggleAction}>{vm.showServer ? 'Fechar' : 'Alterar'}</Text>
           </Pressable>
 
-          {showServer && (
+          {vm.showServer && (
             <View style={{ marginTop: 8 }}>
               <TextInput
                 style={styles.input}
@@ -180,19 +116,19 @@ export function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
-                value={apiUrl}
-                onChangeText={setApiUrlInput}
+                value={vm.apiUrl}
+                onChangeText={vm.setApiUrl}
               />
               <Button
                 label="TESTAR E SALVAR"
                 variant="outline"
-                onPress={handleSaveServer}
-                loading={checkingServer}
+                onPress={vm.saveServer}
+                loading={vm.checkingServer}
                 style={{ marginTop: 10 }}
               />
-              {serverStatus && (
-                <Text style={[styles.serverStatus, { color: serverStatus.ok ? colors.success : colors.error }]}>
-                  {serverStatus.text}
+              {vm.serverStatus && (
+                <Text style={[styles.serverStatus, { color: vm.serverStatus.ok ? colors.success : colors.error }]}>
+                  {vm.serverStatus.text}
                 </Text>
               )}
             </View>

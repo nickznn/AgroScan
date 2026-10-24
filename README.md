@@ -32,7 +32,7 @@ O app (`/`) é um cliente React Native/Expo que fala com uma **API própria** (`
 - Design system próprio (cores, tipografia Hanken Grotesk / Public Sans / JetBrains Mono) baseado no protótipo do Google Stitch
 
 **Backend** (`/backend`)
-- Node.js + Express
+- Node.js + Express, escrito em **TypeScript** (executado com `tsx`, sem etapa de compilação)
 - SQLite (via `better-sqlite3`) — sem serviço externo, o banco é um arquivo local
 - Autenticação JWT + senha com hash (`bcryptjs`)
 - Upload de fotos (`multer`), servidas estaticamente em `/uploads`
@@ -71,7 +71,7 @@ cd AgroScan
 npm run dev
 ```
 
-Na primeira vez ele instala tudo sozinho (alguns minutos, precisa de internet), confere o ambiente, sobe o **backend** e o **Expo**
+Na primeira vez ele instala tudo sozinho (alguns minutos, precisa de internet; nas próximas roda um `npm install` rápido antes de começar), confere o ambiente, sobe o **backend** e o **Expo**
 e mostra o **QR Code**. Escaneie com o **Expo Go**. Na tela de login do app deve aparecer **"Servidor conectado"** (bolinha verde).
 Crie uma conta e use. Para parar tudo: `Ctrl+C`.
 
@@ -121,6 +121,9 @@ Faça esse teste **antes** da apresentação, na própria sala.
 | `npm run doctor` | diagnóstico do computador, para mandar no grupo |
 | `cd backend && npm run db` | mostra o banco de dados em tabelas (somente leitura) |
 | `cd backend && npm run smoke` | teste automático da API (51 verificações; precisa do backend ligado) |
+| `npm test` | testes automáticos das regras do app (Model), rodam em ~1 segundo, sem celular |
+| `npm run check:arch` | confere as regras do MVVM (quem pode importar quem) |
+| `npm run typecheck` | confere os tipos TypeScript do app, dos scripts e do backend, e a arquitetura |
 
 **Endereço do servidor:** o app descobre sozinho o IP do computador (o mesmo de onde o Expo Go baixa o código) e usa a porta 4000.
 Dá para ver e corrigir na **tela de login** ("Servidor: … Alterar") e em **Mais → Configurações → Servidor**.
@@ -129,24 +132,54 @@ Dá para ver e corrigir na **tela de login** ("Servidor: … Alterar") e em **Ma
 em Windows, Mac e Linux. A `12.10.0` em diante parou de publicar para o Node 20, e aí o `npm install` tenta compilar C++ e falha em quem não
 tem o Visual Studio.
 
+## Arquitetura (MVVM)
+
+Todo o app segue o padrão **MVVM** (Model, View, ViewModel). A ideia é separar *o que aparece na tela* de *o que o app faz*:
+
+```
+View  --usa-->  ViewModel  --usa-->  Model / Services
+(desenha)       (estado e lógica)    (dados, regras e API)
+```
+
+| Camada | Pasta | Responsabilidade | Não pode |
+|---|---|---|---|
+| **View** | `src/views`, `src/components` | Desenha a tela e repassa os toques do usuário. Também cuida do que é só de interface (abrir modal, Alert, navegar). | Chamar a API ou ler o estado global direto |
+| **ViewModel** | `src/viewmodels` | Um *hook* por tela (`useLoginViewModel`, `useOrdersViewModel`...). Guarda o estado da tela, valida, filtra e chama as ações. Devolve tudo pronto para a View. | Importar `react-native`, navegação ou Views |
+| **Model** | `src/models` | Tipos dos dados e **regras de negócio puras** (média de saúde, filtros, contagens). | Depender de React ou de outras camadas |
+| **Services** | `src/services` | Fala com o mundo externo: API HTTP (`client.ts`) e câmera/galeria (`media.ts`). | - |
+| Estado compartilhado | `src/context` | `AppContext`: usuário e listas carregadas da API, usados só pelos ViewModels. | Ser usado direto pelas Views |
+
+Exemplo do login: `LoginView` mostra os campos e chama `vm.submit()`. O `useLoginViewModel` valida (`canSubmitCredentials`, do Model), chama o `login` do contexto,
+que usa o `services/client.ts`, e devolve só `loading` e `error` para a tela mostrar.
+
+**Por que isso ajuda:** as regras ficam em funções puras fáceis de testar (`npm test`), trocar a interface não mexe na lógica e cada arquivo tem uma função só.
+As regras de quem pode importar quem são conferidas automaticamente por `npm run check:arch`.
+
 ## Estrutura do projeto
 
 ```
 src/
-  api/          Cliente HTTP (fetch) que fala com o backend
-  components/   Botões, cards, badges reutilizáveis
-  context/      Estado global (auth, histórico, ordens, setores) alimentado pela API
-  data/         Dados estáticos que não vêm do backend (perfil da fazenda)
+  views/        Telas (LoginView, DashboardView, ScannerView, ...): só interface
+  viewmodels/   Um hook por tela com o estado e a lógica (useLoginViewModel, ...)
+  models/       Tipos e regras de negócio puras (index.ts, rules.ts, mapLayout.ts) + testes
+  services/     client.ts (API HTTP) e media.ts (câmera/galeria)
+  context/      AppContext: estado compartilhado, usado pelos ViewModels
+  components/   Botões, cards, badges reutilizáveis (parte da View)
   navigation/   Bottom tabs + stacks
-  screens/      Telas do app
+  data/         Dados estáticos (perfil da fazenda, mapas offline de exemplo)
   theme/        Cores, tipografia e espaçamento
-  types/        Tipos TypeScript compartilhados
+  utils/        Formatação de datas e helpers de comandos
 
-backend/
+backend/ (TypeScript)
   src/
-    db.js           Conexão SQLite + schema das tabelas
-    seed.js          Catálogo de pragas e dados de exemplo para novos usuários
-    middleware/auth.js  Middleware de verificação do JWT
-    routes/          Rotas: auth, detections, orders, sectors
-    index.js         Setup do Express
+    index.ts        Setup do Express
+    db.ts           Conexão SQLite + schema das tabelas
+    seed.ts         Catálogo de pragas e dados de exemplo para novos usuários
+    types.ts        Formato das linhas do banco
+    upload.ts       Configuração do multer
+    middleware/auth.ts  Verificação do JWT
+    routes/         Rotas: auth, detections, orders, sectors
+  scripts/          inspect-db.ts (ver o banco) e smoke.ts (teste da API)
+
+scripts/            Lançador do npm run dev / setup / doctor (TypeScript) e check-architecture.ts
 ```
