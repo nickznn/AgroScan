@@ -24,8 +24,9 @@ export function useScannerViewModel() {
 
   // Escolhe da galeria e analisa. Devolve null se o usuário cancelar a escolha.
   const analyzeFromLibrary = useCallback(async (): Promise<Result<string> | null> => {
-    const uri = await pickFromLibrary();
-    return uri ? analyze(uri) : null;
+    const picked = await attempt(() => pickFromLibrary(), 'Não foi possível abrir a galeria.');
+    if (!picked.ok) return picked;
+    return picked.data ? analyze(picked.data) : null;
   }, [analyze]);
 
   return { photoUri, analyzing, analyze, analyzeFromLibrary };

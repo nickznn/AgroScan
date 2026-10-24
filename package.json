@@ -36,10 +36,10 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "setup": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/setup.ts",
-    "dev": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts",
-    "api": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts api",
-    "doctor": "npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts doctor",
+    "setup": "echo Verificando as dependencias. Na primeira vez pode levar alguns minutos, aguarde... && npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/setup.ts",
+    "dev": "echo Verificando as dependencias. Na primeira vez pode levar alguns minutos, aguarde... && npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts",
+    "api": "echo Verificando as dependencias. Na primeira vez pode levar alguns minutos, aguarde... && npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts api",
+    "doctor": "echo Verificando as dependencias. Na primeira vez pode levar alguns minutos, aguarde... && npm install --no-audit --no-fund --loglevel=error && node --import tsx scripts/dev.ts doctor",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
