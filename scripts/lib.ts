@@ -21,9 +21,10 @@ export const fail = (msg: string) => console.log(`${c.red('[ERRO]')}  ${msg}`);
 export const info = (msg: string) => console.log(`${c.cyan('[..]')}    ${msg}`);
 
 // ---------------------------------------------------------------- Node
-// Faixas aceitas pelo Expo SDK 57 / React Native 0.86 (campo "engines" do react-native e do metro).
-// Abaixo disso o Expo quebra com erros como "configs.toReversed is not a function".
-const NODE_MIN: Record<number, [number, number, number]> = { 20: [20, 19, 4], 22: [22, 13, 0], 24: [24, 3, 0] };
+// Faixas aceitas pelo Expo SDK 58 / React Native 0.88 (campo "engines" do react-native, do metro e do expo):
+// Node 22.13+, 24.3+ ou 26+. As versões ímpares (23, 25) e o Node 20 não são suportados.
+// Fora da faixa o Expo quebra com erros como "configs.toReversed is not a function".
+const NODE_MIN: Record<number, [number, number, number]> = { 22: [22, 13, 0], 24: [24, 3, 0] };
 
 function parseVersion(v: string): number[] {
   return String(v).replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
@@ -46,7 +47,7 @@ export interface NodeStatus {
 export function nodeStatus(version: string = process.env.AGROSCAN_FAKE_NODE || process.versions.node): NodeStatus {
   const v = parseVersion(version);
   const major = v[0];
-  if (major >= 25) return { ok: true, version };
+  if (major >= 26) return { ok: true, version };
   const min = NODE_MIN[major];
   if (min && compareVersions(v, min) >= 0) return { ok: true, version };
   const reason = min ? `a linha ${major}.x só é aceita a partir da ${min.join('.')}` : `a linha ${major}.x não é suportada`;
@@ -56,7 +57,7 @@ export function nodeStatus(version: string = process.env.AGROSCAN_FAKE_NODE || p
 export function explainBadNode(status: NodeStatus): void {
   fail(`Node ${status.version} não serve para este projeto (${status.reason}).`);
   console.log('');
-  console.log('        O projeto precisa de Node 20.19.4 ou mais novo, 22.13 ou mais novo, ou 24.3 ou mais novo.');
+  console.log('        O projeto precisa de Node 22.13 ou mais novo (na linha 22), 24.3 ou mais novo (na linha 24), ou Node 26+.');
   console.log(`        ${c.bold('Recomendado: instale o Node 22 LTS')} em https://nodejs.org (botão "LTS").`);
   console.log('');
   console.log('        Depois de instalar: FECHE o VS Code por completo, abra de novo e confira com:  node -v');
