@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import { NativeModules } from 'react-native';
 import { File } from 'expo-file-system';
@@ -50,16 +51,15 @@ export function detectDevServerUrl(): string | null {
 let cachedBaseUrl: string | null = null;
 let cachedToken: string | null = null;
 
+// O adaptador "fetch" do axios mantém o mesmo caminho de rede que já estava validado no celular (inclusive o upload de fotos).
+const plain = axios.create({ adapter: 'fetch' });
+
 export async function isReachable(url: string, timeoutMs = 2500): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${url.replace(/\/+$/, '')}/health`, { signal: controller.signal });
-    return res.ok;
+    const res = await plain.get(`${url.replace(/\/+$/, '')}/health`, { timeout: timeoutMs });
+    return res.status >= 200 && res.status < 300;
   } catch {
     return false;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -102,16 +102,11 @@ export async function testAndSaveApiUrl(url: string): Promise<void> {
   if (!/^https?:\/\/.+/i.test(clean)) {
     throw new ApiError('Use o formato http://192.168.0.10:4000');
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
   try {
-    const res = await fetch(`${clean}/health`, { signal: controller.signal });
-    if (!res.ok) throw new ApiError('O servidor respondeu com erro.');
+    await plain.get(`${clean}/health`, { timeout: 5000 });
   } catch (err) {
-    if (err instanceof ApiError) throw err;
+    if (axios.isAxiosError(err) && err.response) throw new ApiError('O servidor respondeu com erro.');
     throw new ApiError('Não foi possível conectar nesse endereço. Confira o IP e se o backend está rodando.');
-  } finally {
-    clearTimeout(timer);
   }
   await setApiUrl(clean);
 }
@@ -132,52 +127,51 @@ export class ApiError extends Error {}
 
 const REQUEST_TIMEOUT_MS = 15000;
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const baseUrl = await getApiUrl();
+// Instância única do axios: o endereço do servidor e o token entram em cada requisição pelo interceptor.
+const http = axios.create({ adapter: 'fetch', timeout: REQUEST_TIMEOUT_MS });
+
+http.interceptors.request.use(async (config) => {
+  config.baseURL = await getApiUrl();
   const token = await getToken();
-  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const isUpload = options.body instanceof FormData;
-  if (!isUpload && options.body) {
-    headers['Content-Type'] = 'application/json';
+  if (token) config.headers.set('Authorization', `Bearer ${token}`);
+  if (config.data instanceof FormData) {
+    // Upload: sem timeout curto (a foto pode demorar) e sem Content-Type fixo, para o fetch montar o multipart com o separador certo.
+    config.timeout = 0;
+    config.headers.setContentType(false);
   }
+  return config;
+});
 
-  // Sem timeout, um IP errado numa rede que descarta pacotes deixa o botão girando por minutos.
-  // Uploads (FormData) ficam de fora de propósito: mantêm exatamente o caminho já validado no celular.
-  const controller = new AbortController();
-  const timer = isUpload ? null : setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}${path}`, isUpload ? { ...options, headers } : { ...options, headers, signal: controller.signal });
-  } catch (err) {
-    const detail = controller.signal.aborted
-      ? 'O servidor demorou demais para responder.'
-      : err instanceof Error
-        ? err.message
-        : String(err);
-    console.warn(`[api] fetch falhou para ${path}:`, detail);
-    throw new ApiError(
+function describeError(err: unknown, path: string): ApiError {
+  if (axios.isAxiosError(err)) {
+    const serverMessage = (err.response?.data as { error?: string } | undefined)?.error;
+    if (err.response) return new ApiError(serverMessage || 'Erro inesperado no servidor');
+    const baseUrl = err.config?.baseURL ?? '';
+    const timedOut = err.code === AxiosError.ECONNABORTED || err.code === AxiosError.ETIMEDOUT;
+    const detail = timedOut ? 'O servidor demorou demais para responder.' : err.message;
+    console.warn(`[api] requisição falhou para ${path}:`, detail);
+    return new ApiError(
       `Não foi possível conectar ao servidor (${baseUrl}). ${detail} Confira se o backend está rodando e se o endereço do servidor está certo.`
     );
-  } finally {
-    if (timer) clearTimeout(timer);
   }
+  return new ApiError(err instanceof Error ? err.message : 'Erro inesperado');
+}
 
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    throw new ApiError(data?.error || 'Erro inesperado no servidor');
+async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  const config: AxiosRequestConfig = { url: path, method: options.method ?? 'GET', data: options.body };
+  try {
+    const response = await http.request<T>(config);
+    return response.data;
+  } catch (err) {
+    throw describeError(err, path);
   }
-  return data as T;
 }
 
 // ---------- Auth ----------
 export async function register(input: { name?: string; email: string; password: string; farmName: string }) {
   const data = await request<{ token: string; user: User }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: input,
   });
   await setToken(data.token);
   return data.user;
@@ -186,7 +180,7 @@ export async function register(input: { name?: string; email: string; password: 
 export async function login(email: string, password: string) {
   const data = await request<{ token: string; user: User }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
   await setToken(data.token);
   return data.user;
@@ -200,7 +194,7 @@ export async function fetchMe() {
 export async function updateProfile(input: { name?: string; farmName?: string }) {
   const data = await request<{ user: User }>('/auth/me', {
     method: 'PATCH',
-    body: JSON.stringify(input),
+    body: input,
   });
   return data.user;
 }
@@ -255,7 +249,7 @@ export async function fetchOrders() {
 export async function createOrder(input: { product: string; sector: string; crop: Crop }) {
   const data = await request<{ order: ServiceOrder }>('/orders', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: input,
   });
   return data.order;
 }
@@ -263,7 +257,7 @@ export async function createOrder(input: { product: string; sector: string; crop
 export async function updateOrderStatus(id: string, status: ServiceOrder['status']) {
   const data = await request<{ order: ServiceOrder }>(`/orders/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: { status },
   });
   return data.order;
 }
