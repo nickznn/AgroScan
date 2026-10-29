@@ -2,12 +2,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MainTabParamList } from './types';
-import { DashboardView } from '../views/DashboardView';
-import { ScannerView } from '../views/ScannerView';
-import { MapView } from '../views/MapView';
-import { HistoryView } from '../views/HistoryView';
+import { DashboardView } from '../features/dashboard/view/DashboardView';
+import { ScannerView } from '../features/scanner/view/ScannerView';
+import { MapView } from '../features/map/view/MapView';
+import { HistoryView } from '../features/reports/view/HistoryView';
 import { MoreNavigator } from './MoreNavigator';
-import { colors } from '../theme';
+import { colors } from '../shared/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 

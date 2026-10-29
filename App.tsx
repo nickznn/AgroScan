@@ -5,9 +5,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, HankenGrotesk_700Bold, HankenGrotesk_800ExtraBold } from '@expo-google-fonts/hanken-grotesk';
 import { PublicSans_400Regular, PublicSans_600SemiBold } from '@expo-google-fonts/public-sans';
 import { JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono';
-import { AppProvider } from './src/context/AppContext';
+import { AppProvider } from './src/shared/state/AppContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { colors } from './src/theme';
+import { colors } from './src/shared/theme';
 
 export default function App() {
   const [fontsLoaded] = useFonts({

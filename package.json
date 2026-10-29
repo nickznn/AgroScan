@@ -47,7 +47,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc --noEmit -p scripts && tsc --noEmit -p backend && npm run check:arch",
     "check:arch": "node --import tsx scripts/check-architecture.ts",
-    "test": "node --import tsx --test src/models/rules.test.ts"
+    "test": "node --import tsx scripts/run-tests.ts"
   },
   "private": true,
   "engines": {

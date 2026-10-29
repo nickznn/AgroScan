@@ -3,11 +3,11 @@ import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
-import { LoginView } from '../views/LoginView';
-import { ReportDetailView } from '../views/ReportDetailView';
+import { LoginView } from '../features/auth/view/LoginView';
+import { ReportDetailView } from '../features/reports/view/ReportDetailView';
 import { MainTabs } from './MainTabs';
-import { useRootViewModel } from '../viewmodels/useRootViewModel';
-import { colors } from '../theme';
+import { useRootViewModel } from '../features/auth/viewmodel/useRootViewModel';
+import { colors } from '../shared/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

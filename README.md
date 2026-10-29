@@ -28,6 +28,7 @@ O app (`/`) é um cliente React Native/Expo que fala com uma **API própria** (`
 - [Expo](https://expo.dev) + React Native + TypeScript
 - React Navigation (bottom tabs + native stack)
 - `expo-camera` / `expo-image-picker`
+- `axios` para toda a comunicação com a API (um cliente único, com interceptor para o endereço do servidor e o token)
 - `@react-native-async-storage/async-storage` (cache do token de sessão e do endereço da API)
 - Design system próprio (cores, tipografia Hanken Grotesk / Public Sans / JetBrains Mono) baseado no protótipo do Google Stitch
 
@@ -121,7 +122,7 @@ Faça esse teste **antes** da apresentação, na própria sala.
 | `npm run doctor` | diagnóstico do computador, para mandar no grupo |
 | `cd backend && npm run db` | mostra o banco de dados em tabelas (somente leitura) |
 | `cd backend && npm run smoke` | teste automático da API (51 verificações; precisa do backend ligado) |
-| `npm test` | testes automáticos das regras do app (Model), rodam em ~1 segundo, sem celular |
+| `npm test` | testes automáticos das regras de cada funcionalidade (Model), rodam em ~1 segundo, sem celular |
 | `npm run check:arch` | confere as regras do MVVM (quem pode importar quem) |
 | `npm run typecheck` | confere os tipos TypeScript do app, dos scripts e do backend, e a arquitetura |
 
@@ -132,9 +133,9 @@ Dá para ver e corrigir na **tela de login** ("Servidor: … Alterar") e em **Ma
 em Windows, Mac e Linux. A `12.10.0` em diante parou de publicar para o Node 20, e aí o `npm install` tenta compilar C++ e falha em quem não
 tem o Visual Studio.
 
-## Arquitetura (MVVM)
+## Arquitetura (MVVM por funcionalidade)
 
-Todo o app segue o padrão **MVVM** (Model, View, ViewModel). A ideia é separar *o que aparece na tela* de *o que o app faz*:
+O app segue o padrão **MVVM** (Model, View, ViewModel) e está **organizado por funcionalidade**: cada recurso do app tem a sua própria pasta, com as três camadas dentro.
 
 ```
 View  --usa-->  ViewModel  --usa-->  Model / Services
@@ -143,32 +144,41 @@ View  --usa-->  ViewModel  --usa-->  Model / Services
 
 | Camada | Pasta | Responsabilidade | Não pode |
 |---|---|---|---|
-| **View** | `src/views`, `src/components` | Desenha a tela e repassa os toques do usuário. Também cuida do que é só de interface (abrir modal, Alert, navegar). | Chamar a API ou ler o estado global direto |
-| **ViewModel** | `src/viewmodels` | Um *hook* por tela (`useLoginViewModel`, `useOrdersViewModel`...). Guarda o estado da tela, valida, filtra e chama as ações. Devolve tudo pronto para a View. | Importar `react-native`, navegação ou Views |
-| **Model** | `src/models` | Tipos dos dados e **regras de negócio puras** (média de saúde, filtros, contagens). | Depender de React ou de outras camadas |
-| **Services** | `src/services` | Fala com o mundo externo: API HTTP (`client.ts`) e câmera/galeria (`media.ts`). | - |
-| Estado compartilhado | `src/context` | `AppContext`: usuário e listas carregadas da API, usados só pelos ViewModels. | Ser usado direto pelas Views |
+| **View** | `features/<nome>/view` | Desenha a tela e repassa os toques do usuário. Cuida do que é só de interface (abrir modal, Alert, navegar). | Chamar a API ou ler o estado global direto |
+| **ViewModel** | `features/<nome>/viewmodel` | Um *hook* por tela (`useLoginViewModel`, `useOrdersViewModel`...). Guarda o estado, valida, filtra e dispara as ações. | Importar `react-native`, navegação ou Views |
+| **Model** | `features/<nome>/model` | **Regras de negócio puras** da funcionalidade, com testes (`*.test.ts`) ao lado. | Depender de React ou de outras camadas |
+| **Compartilhado** | `shared/` | Tipos (`models`), cliente HTTP com axios e acesso à câmera (`services`), estado carregado da API (`state`), componentes, tema e utilitários. | - |
 
-Exemplo do login: `LoginView` mostra os campos e chama `vm.submit()`. O `useLoginViewModel` valida (`canSubmitCredentials`, do Model), chama o `login` do contexto,
-que usa o `services/client.ts`, e devolve só `loading` e `error` para a tela mostrar.
+**Funcionalidades:** `auth` (login), `dashboard` (home), `scanner`, `reports` (histórico e relatório), `map`, `farm`, `orders`, `profile`, `settings` e `more` (menu).
 
-**Por que isso ajuda:** as regras ficam em funções puras fáceis de testar (`npm test`), trocar a interface não mexe na lógica e cada arquivo tem uma função só.
-As regras de quem pode importar quem são conferidas automaticamente por `npm run check:arch`.
+Regras que o projeto confere automaticamente (`npm run check:arch`): a View não importa `services` nem o estado global; o ViewModel não importa `react-native` nem navegação; o Model não depende das outras camadas;
+e **uma funcionalidade nunca importa outra** (o que é comum vai para `shared/`).
+
+Exemplo do login: `features/auth/view/LoginView` mostra os campos e chama `vm.submit()`. O `useLoginViewModel` valida com `canSubmitCredentials` (`features/auth/model/credentials`),
+chama o login do estado compartilhado, que usa o `shared/services/client.ts` (axios), e devolve só `loading` e `error` para a tela mostrar.
 
 ## Estrutura do projeto
 
 ```
 src/
-  views/        Telas (LoginView, DashboardView, ScannerView, ...): só interface
-  viewmodels/   Um hook por tela com o estado e a lógica (useLoginViewModel, ...)
-  models/       Tipos e regras de negócio puras (index.ts, rules.ts, mapLayout.ts) + testes
-  services/     client.ts (API HTTP) e media.ts (câmera/galeria)
-  context/      AppContext: estado compartilhado, usado pelos ViewModels
-  components/   Botões, cards, badges reutilizáveis (parte da View)
-  navigation/   Bottom tabs + stacks
-  data/         Dados estáticos (perfil da fazenda, mapas offline de exemplo)
-  theme/        Cores, tipografia e espaçamento
-  utils/        Formatação de datas e helpers de comandos
+  features/                 Uma pasta por funcionalidade
+    auth/                   view/LoginView  viewmodel/useLoginViewModel, useRootViewModel  model/credentials
+    dashboard/              view/DashboardView  viewmodel/useDashboardViewModel  model/greeting
+    scanner/                view/ScannerView  viewmodel/useScannerViewModel
+    reports/                view/HistoryView, ReportDetailView  viewmodel/...  model/detectionRules
+    map/                    view/MapView  viewmodel/useMapViewModel  model/mapLayout, mapRules
+    farm/                   view/FarmView  viewmodel/useFarmViewModel  model/farm
+    orders/                 view/OrdersView  viewmodel/useOrdersViewModel  model/orderRules
+    profile/                view/ProfileView  viewmodel/useProfileViewModel
+    settings/               view/SettingsView  viewmodel/useSettingsViewModel  model/offlineAreas
+    more/                   view/MoreMenuView  viewmodel/useMoreMenuViewModel
+  shared/
+    components/             Botões, cards, badges reutilizáveis
+    models/                 Tipos (index.ts) e regras comuns (rules.ts) + testes
+    services/               client.ts (axios) e media.ts (câmera/galeria)
+    state/                  AppContext: estado carregado da API, usado pelos ViewModels
+    theme/ utils/           Cores, tipografia e helpers de formatação
+  navigation/               Bottom tabs + stacks (monta as Views de cada funcionalidade)
 
 backend/ (TypeScript)
   src/
@@ -181,5 +191,5 @@ backend/ (TypeScript)
     routes/         Rotas: auth, detections, orders, sectors
   scripts/          inspect-db.ts (ver o banco) e smoke.ts (teste da API)
 
-scripts/            Lançador do npm run dev / setup / doctor (TypeScript) e check-architecture.ts
+scripts/            Lançador do npm run dev / setup / doctor, run-tests.ts e check-architecture.ts (TypeScript)
 ```

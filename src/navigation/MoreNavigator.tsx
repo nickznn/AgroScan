@@ -1,11 +1,11 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MoreStackParamList } from './types';
-import { MoreMenuView } from '../views/MoreMenuView';
-import { ProfileView } from '../views/ProfileView';
-import { FarmView } from '../views/FarmView';
-import { OrdersView } from '../views/OrdersView';
-import { SettingsView } from '../views/SettingsView';
+import { MoreMenuView } from '../features/more/view/MoreMenuView';
+import { ProfileView } from '../features/profile/view/ProfileView';
+import { FarmView } from '../features/farm/view/FarmView';
+import { OrdersView } from '../features/orders/view/OrdersView';
+import { SettingsView } from '../features/settings/view/SettingsView';
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
 

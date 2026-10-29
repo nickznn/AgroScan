@@ -8,6 +8,7 @@
     "backend",
     "scripts",
     "dist",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "src/shared/models/fixtures.ts"
   ]
 }
