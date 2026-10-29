@@ -34,7 +34,8 @@
         {
           "photosPermission": "O AgroScan usa suas fotos para identificar pragas e doenças nas plantas."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }
