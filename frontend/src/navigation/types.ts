@@ -3,7 +3,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type MainTabParamList = {
   Home: undefined;
   Scanner: undefined;
-  Maps: undefined;
+  Maps: { focusId?: string } | undefined;
   Reports: undefined;
   More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };

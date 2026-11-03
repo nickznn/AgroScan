@@ -1,32 +1,30 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, radius } from '../../../shared/theme';
 import { ScreenHeader } from '../../../shared/components/ScreenHeader';
-import { RootStackParamList } from '../../../navigation/types';
-import { Crop, Severity } from '../../../shared/models';
+import { MainTabParamList, RootStackParamList } from '../../../navigation/types';
+import { Crop } from '../../../shared/models';
 import { useMapViewModel } from '../viewmodel/useMapViewModel';
+import { formatCoords } from '../../../shared/utils/format';
+import { GeoMap } from './GeoMap';
+import { SEVERITY_COLOR } from './geoMapTypes';
 
 const CROPS: (Crop | 'Todas')[] = ['Todas', 'Soja', 'Milho', 'Algodão', 'Café'];
 
-const SEVERITY_COLOR: Record<Severity, string> = {
-  critical: colors.error,
-  moderate: colors.warning,
-  low: colors.success,
-};
-
-const MAP_SIZE = 320;
+const SEVERITY_LABEL = { critical: 'Crítico', moderate: 'Moderado', low: 'Baixo' } as const;
 
 export function MapView() {
-  const { cropFilter, setCropFilter, points, selected, select: setSelectedId, counts } = useMapViewModel();
+  const route = useRoute<RouteProp<MainTabParamList, 'Maps'>>();
+  const { cropFilter, setCropFilter, points, region, selected, selectedId, select, counts, withoutLocation } = useMapViewModel(route.params?.focusId);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const selectedPoint = points.find((p) => p.item.id === selectedId);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="AgroScan AI" />
+      <ScreenHeader title="Mapa de focos" />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
         {CROPS.map((crop) => {
@@ -42,69 +40,47 @@ export function MapView() {
       </ScrollView>
 
       <View style={styles.mapArea}>
-        <LinearGradient colors={['#dfe9ff', '#eaf3ee']} style={StyleSheet.absoluteFill} />
-        <Svg width={MAP_SIZE} height={MAP_SIZE} style={StyleSheet.absoluteFill}>
-          <Defs>
-            {points.map((p) => (
-              <RadialGradient key={p.item.id} id={`grad-${p.item.id}`} cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor={SEVERITY_COLOR[p.item.pest.severity]} stopOpacity={0.55} />
-                <Stop offset="100%" stopColor={SEVERITY_COLOR[p.item.pest.severity]} stopOpacity={0} />
-              </RadialGradient>
-            ))}
-          </Defs>
-          {points.map((p) => {
-            const blobRadius = 30 + p.item.affectedArea * 2.2;
-            return (
-              <Circle
-                key={p.item.id}
-                cx={p.x * MAP_SIZE}
-                cy={p.y * MAP_SIZE}
-                r={blobRadius}
-                fill={`url(#grad-${p.item.id})`}
-              />
-            );
-          })}
-        </Svg>
-
-        {points.map((p) => (
-          <Pressable
-            key={p.item.id}
-            onPress={() => setSelectedId(p.item.id)}
-            style={[styles.pinWrap, { left: p.x * MAP_SIZE - 10, top: p.y * MAP_SIZE - 10 }]}
-          >
-            <View style={[styles.pin, { backgroundColor: SEVERITY_COLOR[p.item.pest.severity] }]} />
-          </Pressable>
-        ))}
+        <GeoMap points={points} region={region} selectedId={selectedId} onSelect={select} />
 
         {points.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={[typography.bodyMd, { color: colors.onSurfaceVariant, textAlign: 'center' }]}>
-              Nenhum foco registrado para esse filtro.
+          <View style={styles.emptyState} pointerEvents="none">
+            <MaterialIcons name="location-off" size={28} color="#fff" />
+            <Text style={[typography.bodyMd, { color: '#fff', textAlign: 'center', marginTop: 8 }]}>
+              Nenhum foco com localização. Escaneie uma planta com o GPS ligado e ele aparece aqui.
             </Text>
           </View>
         )}
+
+        <View style={styles.legendOverlay} pointerEvents="none">
+          <LegendItem color={colors.error} label={`Crítico ${counts.critical}`} />
+          <LegendItem color={colors.warning} label={`Moderado ${counts.moderate}`} />
+          <LegendItem color={colors.success} label={`Baixo ${counts.low}`} />
+        </View>
+
+        {selected && (
+          <Pressable style={styles.selectedCard} onPress={() => navigation.navigate('ReportDetail', { id: selected.id })}>
+            <View style={[styles.severityBar, { backgroundColor: SEVERITY_COLOR[selected.pest.severity] }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={typography.bodySemiBold}>{selected.pest.name}</Text>
+              <Text style={typography.bodySm}>
+                {selected.sector} · {selected.pest.crop} · {SEVERITY_LABEL[selected.pest.severity]} · {selected.confidence.toFixed(0)}%
+              </Text>
+              {selectedPoint && (
+                <Text style={[typography.bodySm, { color: colors.outline }]}>{formatCoords(selectedPoint.latitude, selectedPoint.longitude)}</Text>
+              )}
+            </View>
+            <Text style={[typography.labelCaps, { color: colors.secondary }]}>VER →</Text>
+          </Pressable>
+        )}
       </View>
 
-      {selected && (
-        <Pressable style={styles.selectedCard} onPress={() => navigation.navigate('ReportDetail', { id: selected.id })}>
-          <View style={[styles.dot, { backgroundColor: SEVERITY_COLOR[selected.pest.severity] }]} />
-          <View style={{ flex: 1 }}>
-            <Text style={typography.bodySemiBold}>{selected.pest.name}</Text>
-            <Text style={typography.bodySm}>
-              {selected.sector} · {selected.pest.crop} · {selected.confidence.toFixed(0)}% confiança
-            </Text>
-          </View>
-          <Text style={[typography.labelCaps, { color: colors.secondary }]}>VER →</Text>
-        </Pressable>
-      )}
-
-      <View style={styles.legend}>
-        <Text style={typography.bodySemiBold}>{points.length} foco(s) registrado(s)</Text>
-        <View style={styles.legendRow}>
-          <LegendItem color={colors.success} label={`Saudável (${counts.low})`} />
-          <LegendItem color={colors.warning} label={`Moderado (${counts.moderate})`} />
-          <LegendItem color={colors.error} label={`Crítico (${counts.critical})`} />
-        </View>
+      <View style={styles.footer}>
+        <Text style={typography.bodySemiBold}>{points.length} foco(s) no mapa</Text>
+        {withoutLocation > 0 && (
+          <Text style={[typography.bodySm, { color: colors.onSurfaceVariant }]}>
+            {withoutLocation} sem localização (GPS desligado ou foto da galeria)
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -112,9 +88,9 @@ export function MapView() {
 
 function LegendItem({ color, label }: { color: string; label: string }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+    <View style={styles.legendItem}>
       <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginRight: 6 }} />
-      <Text style={typography.bodySm}>{label}</Text>
+      <Text style={[typography.bodySm, { color: '#fff' }]}>{label}</Text>
     </View>
   );
 }
@@ -132,28 +108,36 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   cropChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  mapArea: { width: MAP_SIZE, height: MAP_SIZE, alignSelf: 'center', borderRadius: radius.lg, overflow: 'hidden' },
-  pinWrap: { position: 'absolute', width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  pin: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: '#fff' },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  mapArea: { flex: 1, overflow: 'hidden', backgroundColor: '#1f3d2f' },
+  emptyState: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  legendOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: radius.lg,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 2 },
   selectedCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceContainerLowest,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.lg,
-    marginHorizontal: 20,
-    marginTop: 16,
     padding: 14,
+    paddingLeft: 0,
+    overflow: 'hidden',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-  legend: {
-    marginTop: 'auto',
-    backgroundColor: colors.surfaceContainerLowest,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-  },
-  legendRow: { flexDirection: 'row', marginTop: 8, flexWrap: 'wrap' },
+  severityBar: { width: 6, alignSelf: 'stretch', marginRight: 12, marginVertical: -14 },
+  footer: { backgroundColor: colors.surfaceContainerLowest, borderTopWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingVertical: 10 },
 });

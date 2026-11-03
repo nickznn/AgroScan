@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
+import { Coords, DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
 import * as api from '../services/client';
 
 interface AppContextValue {
@@ -14,7 +14,7 @@ interface AppContextValue {
   uploadFarmPhoto: (photoUri: string) => Promise<void>;
 
   history: DetectionResult[];
-  addDetection: (photoUri: string | null) => Promise<DetectionResult>;
+  addDetection: (photoUri: string | null, coords?: Coords | null) => Promise<DetectionResult>;
 
   orders: ServiceOrder[];
   updateOrderStatus: (id: string, status: ServiceOrder['status']) => Promise<void>;
@@ -122,8 +122,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
   }, []);
 
-  const addDetection = useCallback(async (photoUri: string | null) => {
-    const detection = await api.createDetection(photoUri);
+  const addDetection = useCallback(async (photoUri: string | null, coords: Coords | null = null) => {
+    const detection = await api.createDetection(photoUri, coords);
     setHistory((prev) => [detection, ...prev]);
     return detection;
   }, []);

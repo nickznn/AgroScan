@@ -122,16 +122,17 @@ export function seedForNewUser(userId: number): void {
   }
 
   const insertDetection = db.prepare(`
-    INSERT INTO detections (id, user_id, pest_id, confidence, sector, timestamp, photo_url, affected_area, stage, offline)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO detections (id, user_id, pest_id, confidence, sector, timestamp, photo_url, affected_area, stage, offline, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const now = Date.now();
-  const detections: [string, string, number, string, number, number, string, number][] = [
-    [`seed-1-${userId}`, 'lagarta-do-cartucho', 98.4, 'Setor Alpha-3', now - 1000 * 60 * 60 * 2, 15.4, 'L3-L4 (Desenvolvimento)', 0],
-    [`seed-2-${userId}`, 'percevejo-marrom', 82, 'Setor Delta-1', now - 1000 * 60 * 60 * 26, 6.1, 'Ninfa (Inicial)', 0],
-    [`seed-3-${userId}`, 'helicoverpa', 65, 'Setor Beta-2', now - 1000 * 60 * 60 * 50, 2.3, 'Presença isolada', 1],
+  // Focos de exemplo numa fazenda de Rio Verde (GO), para o mapa não começar vazio. Os scans reais usam o GPS do aparelho.
+  const detections: [string, string, number, string, number, number, string, number, number, number][] = [
+    [`seed-1-${userId}`, 'lagarta-do-cartucho', 98.4, 'Setor Alpha-3', now - 1000 * 60 * 60 * 2, 15.4, 'L3-L4 (Desenvolvimento)', 0, -17.7921, -50.9213],
+    [`seed-2-${userId}`, 'percevejo-marrom', 82, 'Setor Delta-1', now - 1000 * 60 * 60 * 26, 6.1, 'Ninfa (Inicial)', 0, -17.7968, -50.9142],
+    [`seed-3-${userId}`, 'helicoverpa', 65, 'Setor Beta-2', now - 1000 * 60 * 60 * 50, 2.3, 'Presença isolada', 1, -17.7889, -50.9087],
   ];
-  for (const [id, pestId, confidence, sector, timestamp, area, stage, offline] of detections) {
-    insertDetection.run(id, userId, pestId, confidence, sector, timestamp, null, area, stage, offline);
+  for (const [id, pestId, confidence, sector, timestamp, area, stage, offline, lat, lng] of detections) {
+    insertDetection.run(id, userId, pestId, confidence, sector, timestamp, null, area, stage, offline, lat, lng);
   }
 }

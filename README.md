@@ -29,7 +29,7 @@ O app só conhece a API pelo endereço HTTP (`frontend/src/shared/services/clien
 - **Scanner** — captura foto (câmera ou galeria), envia para a API e recebe o resultado da "análise"
 - **Relatório de Praga** — severidade, confiança da IA, ação recomendada
 - **Histórico** — busca e filtro de detecções anteriores por severidade
-- **Mapa de Focos** — visualização de calor das ocorrências na lavoura
+- **Mapa de Focos** — mapa de satélite com a posição real (GPS) de cada ocorrência, manchas de calor por severidade e filtro por cultura
 - **Fazenda** — setores monitorados e health score
 - **Ordens de Serviço** — criar e acompanhar aplicações (pendente ⇄ em andamento ⇄ concluída, status editável nos dois sentidos)
 - **Configurações** — sincronizar (refaz o fetch de todos os dados) e trocar o endereço do servidor sem precisar reinstalar o app

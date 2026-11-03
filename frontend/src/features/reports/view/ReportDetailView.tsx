@@ -8,7 +8,7 @@ import { ScreenHeader } from '../../../shared/components/ScreenHeader';
 import { Card } from '../../../shared/components/Card';
 import { Button } from '../../../shared/components/Button';
 import { RootStackParamList } from '../../../navigation/types';
-import { formatDateTime } from '../../../shared/utils/format';
+import { formatCoords, formatDateTime } from '../../../shared/utils/format';
 import { useReportDetailViewModel } from '../viewmodel/useReportDetailViewModel';
 
 const severityColor = { critical: colors.error, moderate: colors.warning, low: colors.success } as const;
@@ -23,6 +23,9 @@ export function ReportDetailView() {
   // caía na Home e o toque em "Mais" passava a abrir sempre as Ordens, sem acesso ao menu.
   const openOrders = () =>
     navigation.navigate('Main', { screen: 'More', params: { screen: 'Orders', initial: false } });
+
+  const hasLocation = !!item && item.latitude !== null && item.longitude !== null;
+  const openOnMap = () => navigation.navigate('Main', { screen: 'Maps', params: { focusId: route.params.id } });
 
   if (!item) {
     return (
@@ -83,6 +86,19 @@ export function ReportDetailView() {
               <Text style={typography.bodySm}>{stageDetail}</Text>
             </View>
           </View>
+        </Card>
+
+        <Card style={{ marginTop: 16 }}>
+          <View style={styles.row}>
+            <MaterialIcons name={hasLocation ? 'place' : 'location-off'} size={22} color={hasLocation ? colors.secondary : colors.outline} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={typography.bodySemiBold}>Localização do foco</Text>
+              <Text style={[typography.bodySm, { color: colors.onSurfaceVariant }]}>
+                {hasLocation ? formatCoords(item.latitude as number, item.longitude as number) : 'Sem localização registrada (GPS desligado ou foto da galeria).'}
+              </Text>
+            </View>
+          </View>
+          {hasLocation && <Button label="VER NO MAPA" variant="outline" onPress={openOnMap} style={{ marginTop: 12 }} />}
         </Card>
 
         <Card style={{ marginTop: 16, backgroundColor: colors.surfaceContainerLow }}>

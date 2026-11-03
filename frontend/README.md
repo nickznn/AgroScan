@@ -25,7 +25,7 @@ Escaneie o QR Code com o **Expo Go** atualizado (versão do SDK 58). O app desco
 | Comando | O que faz |
 |---|---|
 | `npm start` | inicia o Expo (QR Code) |
-| `npm run web` | abre a versão web (útil para conferir telas; câmera e mapa real só no celular) |
+| `npm run web` | abre a versão web (útil para conferir telas; câmera, GPS e o mapa de satélite só no celular, com o Expo Go) |
 | `npm run typecheck` | confere os tipos TypeScript |
 
 Os testes das regras e a verificação da arquitetura rodam pela raiz: `npm test` e `npm run check:arch`.

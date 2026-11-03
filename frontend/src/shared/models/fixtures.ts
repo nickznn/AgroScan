@@ -10,7 +10,7 @@ export const detection = (id: string, name: string, severity: Severity, sectorNa
   pest: {
     id, name, scientificName: name, crop: 'Soja', severity, description: '', recommendedAction: '', affectedAreaRange: [1, 2],
   },
-  confidence: 90, sector: sectorName, timestamp: 0, photoUri: null, affectedArea: 1, stage: 'Inicial', offline: false,
+  confidence: 90, sector: sectorName, timestamp: 0, photoUri: null, affectedArea: 1, stage: 'Inicial', offline: false, latitude: null, longitude: null,
 });
 
 export const order = (id: string, status: ServiceOrder['status']): ServiceOrder => ({

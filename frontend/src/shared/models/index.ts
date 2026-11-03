@@ -23,6 +23,14 @@ export interface DetectionResult {
   affectedArea: number;
   stage: string;
   offline: boolean;
+  // Onde o scan foi feito (null quando a localização não foi permitida ou a foto veio da galeria sem GPS).
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface Coords {
+  latitude: number;
+  longitude: number;
 }
 
 export interface Sector {

@@ -35,6 +35,12 @@
           "photosPermission": "O AgroScan usa suas fotos para identificar pragas e doenças nas plantas."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O AgroScan usa sua localização para marcar no mapa onde cada praga foi encontrada."
+        }
+      ],
       "expo-status-bar"
     ]
   }

@@ -3,7 +3,7 @@ import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import { NativeModules } from 'react-native';
 import { File } from 'expo-file-system';
-import { DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
+import { Coords, DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
 
 const API_URL_KEY = 'agroscan:apiUrl';
 const TOKEN_KEY = 'agroscan:token';
@@ -226,8 +226,12 @@ export async function fetchDetections() {
   return data.detections;
 }
 
-export async function createDetection(photoUri: string | null) {
+export async function createDetection(photoUri: string | null, coords: Coords | null = null) {
   const form = new FormData();
+  if (coords) {
+    form.append('latitude', String(coords.latitude));
+    form.append('longitude', String(coords.longitude));
+  }
   if (photoUri) {
     // SDK 57: FormData precisa de um Blob de verdade (via a classe File), não mais de
     // um objeto {uri, name, type} solto — isso agora dá "Unsupported FormDataPart implementation".
