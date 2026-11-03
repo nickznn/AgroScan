@@ -1,5 +1,6 @@
 import express, { Request } from 'express';
 import crypto from 'crypto';
+import fs from 'fs';
 import db from '../db';
 import { requireAuth } from '../middleware/auth';
 import { upload, absoluteUrl } from '../upload';
@@ -17,6 +18,8 @@ function rowToDetection(req: Request, row: DetectionRow) {
     affectedArea: row.affected_area,
     stage: row.stage,
     offline: !!row.offline,
+    latitude: row.latitude,
+    longitude: row.longitude,
     pest: {
       id: row.pest_id,
       name: row.name,
@@ -42,8 +45,33 @@ router.get('/', requireAuth, (req, res) => {
   res.json({ detections: rows.map((r) => rowToDetection(req, r)) });
 });
 
+// Lê um número de um campo de formulário (multipart chega como texto). Devolve null se não existir
+// e lança erro se existir mas for inválido ou estiver fora do intervalo.
+function parseCoordinate(raw: unknown, min: number, max: number, label: string): number | null {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < min || value > max) throw new Error(`${label} inválida`);
+  return value;
+}
+
 // A "análise de IA" é simulada no servidor: sorteia uma praga do catálogo e gera métricas plausíveis.
 router.post('/', requireAuth, upload.single('photo'), (req, res) => {
+  let latitude: number | null;
+  let longitude: number | null;
+  try {
+    latitude = parseCoordinate(req.body?.latitude, -90, 90, 'Latitude');
+    longitude = parseCoordinate(req.body?.longitude, -180, 180, 'Longitude');
+  } catch (err) {
+    if (req.file) fs.rmSync(req.file.path, { force: true }); // não deixa a foto órfã no disco
+    res.status(400).json({ error: (err as Error).message });
+    return;
+  }
+  if ((latitude === null) !== (longitude === null)) {
+    if (req.file) fs.rmSync(req.file.path, { force: true });
+    res.status(400).json({ error: 'Informe latitude e longitude juntas' });
+    return;
+  }
+
   const pests = db.prepare('SELECT * FROM pests').all() as PestRow[];
   const pest = pests[Math.floor(Math.random() * pests.length)];
   const sectors = db.prepare('SELECT * FROM sectors WHERE user_id = ?').all(req.userId) as SectorRow[];
@@ -59,9 +87,9 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
   const timestamp = Date.now();
 
   db.prepare(
-    `INSERT INTO detections (id, user_id, pest_id, confidence, sector, timestamp, photo_url, affected_area, stage, offline)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, req.userId, pest.id, confidence, sector ? sector.name : 'Setor não identificado', timestamp, photoUrl, affectedArea, stage, offline ? 1 : 0);
+    `INSERT INTO detections (id, user_id, pest_id, confidence, sector, timestamp, photo_url, affected_area, stage, offline, latitude, longitude)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, req.userId, pest.id, confidence, sector ? sector.name : 'Setor não identificado', timestamp, photoUrl, affectedArea, stage, offline ? 1 : 0, latitude, longitude);
 
   const row = db.prepare(`${SELECT_JOIN} WHERE d.id = ?`).get(id) as DetectionRow;
   res.status(201).json({ detection: rowToDetection(req, row) });

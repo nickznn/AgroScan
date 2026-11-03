@@ -171,8 +171,29 @@ async function run(): Promise<void> {
   }
   r = await api('/detections', { method: 'POST', token, form: new FormData() });
   check('scan sem foto 201 (photoUri nulo)', r.status === 201 && r.body.detection.photoUri === null);
+  check('scan sem GPS: latitude/longitude nulas', r.body.detection.latitude === null && r.body.detection.longitude === null);
+  const geoForm = pngForm();
+  geoForm.append('latitude', '-12.5453');
+  geoForm.append('longitude', '-55.7114');
+  r = await api('/detections', { method: 'POST', token, form: geoForm });
+  check('scan com GPS 201 grava a localizacao', r.status === 201 && r.body.detection.latitude === -12.5453 && r.body.detection.longitude === -55.7114);
+  const badLat = pngForm();
+  badLat.append('latitude', '123');
+  badLat.append('longitude', '-55');
+  r = await api('/detections', { method: 'POST', token, form: badLat });
+  check('latitude fora do intervalo (400)', r.status === 400);
+  const onlyLat = pngForm();
+  onlyLat.append('latitude', '-12.5');
+  r = await api('/detections', { method: 'POST', token, form: onlyLat });
+  check('so latitude, sem longitude (400)', r.status === 400);
+  const textLat = pngForm();
+  textLat.append('latitude', 'abc');
+  textLat.append('longitude', '10');
+  r = await api('/detections', { method: 'POST', token, form: textLat });
+  check('latitude nao numerica (400)', r.status === 400);
   r = await api('/detections', { token });
-  check('historico agora 5', r.body.detections.length === 5);
+  check('historico traz a localizacao do scan com GPS', r.body.detections.some((d: { latitude: number | null }) => d.latitude === -12.5453));
+  check('historico agora 6', r.body.detections.length === 6);
   check('historico: mais recente primeiro', r.body.detections[0].timestamp >= r.body.detections[1].timestamp);
 
   console.log('> orders');
@@ -254,7 +275,7 @@ async function run(): Promise<void> {
   r = await api(`/admin/users?search=${encodeURIComponent(`smoke${stamp}`)}`, { token: adminToken });
   const me1 = r.body.users.find((u: { email: string }) => u.email === email);
   check('lista de usuarios encontra pela busca', r.status === 200 && !!me1);
-  check('usuario traz contagens e nao vaza a senha', me1.detectionCount === 5 && me1.orderCount === 5 && !JSON.stringify(me1).includes('hash') && !JSON.stringify(me1).includes('password'));
+  check('usuario traz contagens e nao vaza a senha', me1.detectionCount === 6 && me1.orderCount === 5 && !JSON.stringify(me1).includes('hash') && !JSON.stringify(me1).includes('password'));
   const id1: number = me1.id;
   const meAdmin = (await api('/auth/me', { token: adminToken })).body.user;
 

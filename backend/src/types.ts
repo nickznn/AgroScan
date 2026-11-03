@@ -52,6 +52,8 @@ export interface DetectionRow extends PestRow {
   affected_area: number;
   stage: string;
   offline: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface OrderRow {

@@ -88,6 +88,15 @@ if (!userColumns.includes('last_login_at')) {
   db.exec('ALTER TABLE users ADD COLUMN last_login_at INTEGER');
 }
 
+// Localização (GPS) de cada detecção. Registros antigos ficam sem localização (NULL).
+const detectionColumns = (db.prepare('PRAGMA table_info(detections)').all() as { name: string }[]).map((c) => c.name);
+if (!detectionColumns.includes('latitude')) {
+  db.exec('ALTER TABLE detections ADD COLUMN latitude REAL');
+}
+if (!detectionColumns.includes('longitude')) {
+  db.exec('ALTER TABLE detections ADD COLUMN longitude REAL');
+}
+
 // Registro de auditoria das ações do administrador. Sem chave estrangeira de propósito: o histórico
 // continua existindo mesmo que o usuário que fez a ação (ou o alvo dela) seja apagado depois.
 db.exec(`
