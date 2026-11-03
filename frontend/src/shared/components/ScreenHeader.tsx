@@ -9,14 +9,19 @@ export function ScreenHeader({
   showSync,
   offline,
   onBack,
+  tone = 'default',
+  badge,
 }: {
   title: string;
   showSync?: boolean;
   offline?: boolean;
   onBack?: () => void;
+  /** 'admin' pinta o cabeçalho com a cor da área do administrador. */
+  tone?: 'default' | 'admin';
+  badge?: string;
 }) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, tone === 'admin' && { backgroundColor: colors.admin }]}>
       <View style={styles.row}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
@@ -29,6 +34,11 @@ export function ScreenHeader({
           {title}
         </Text>
         {showSync && <SyncBadge offline={!!offline} />}
+        {badge ? (
+          <View style={styles.badge}>
+            <Text style={[typography.labelCaps, { color: '#fff', fontSize: 10 }]}>{badge}</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -43,4 +53,5 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   backBtn: { marginRight: 12 },
+  badge: { backgroundColor: colors.adminAccent, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
 });

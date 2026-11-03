@@ -87,6 +87,11 @@ export function ProfileView() {
             <>
               <Text style={[typography.headlineMd, { textAlign: 'center', marginTop: 12 }]}>{user?.name}</Text>
               <Text style={[typography.bodySm, { textAlign: 'center', color: colors.onSurfaceVariant }]}>{user?.email}</Text>
+              {user?.role === 'admin' ? (
+                <View style={{ alignSelf: 'center', marginTop: 8, backgroundColor: colors.adminSoft, paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.full }}>
+                  <Text style={[typography.labelCaps, { color: colors.adminAccent }]}>Administrador</Text>
+                </View>
+              ) : null}
 
               <Card style={{ marginTop: 20 }}>
                 <InfoRow icon="agriculture" label="Fazenda" value={user?.farmName ?? '—'} />

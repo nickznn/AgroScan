@@ -3,5 +3,5 @@ import { useApp } from '../../../shared/state/AppContext';
 // O que a navegação raiz precisa saber: ainda está verificando o login salvo? Há alguém logado?
 export function useRootViewModel() {
   const { user, isLoading } = useApp();
-  return { isLoading, isLoggedIn: !!user };
+  return { isLoading, isLoggedIn: !!user, isAdmin: user?.role === 'admin' };
 }

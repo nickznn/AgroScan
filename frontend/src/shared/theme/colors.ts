@@ -47,6 +47,11 @@ export const colors = {
   warning: '#f69f0d',
   critical: '#ba1a1a',
   border: '#e5e7eb',
+
+  // área do administrador (cor própria para ficar claro que é outra área do app)
+  admin: '#1b2a41',
+  adminAccent: '#2f6db5',
+  adminSoft: '#e8f0fb',
 };
 
 export const radius = {

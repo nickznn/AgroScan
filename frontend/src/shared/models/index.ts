@@ -46,6 +46,8 @@ export interface ServiceOrder {
   status: OrderStatus;
 }
 
+export type Role = 'user' | 'admin';
+
 export interface User {
   id: number;
   name: string;
@@ -54,6 +56,7 @@ export interface User {
   createdAt: number;
   avatarUrl: string | null;
   farmPhotoUrl: string | null;
+  role: Role;
 }
 
 // Resultado de um comando do ViewModel: a View decide como mostrar o erro (Alert, texto, etc.).

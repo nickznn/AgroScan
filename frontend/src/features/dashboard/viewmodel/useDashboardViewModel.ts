@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '../../../shared/state/AppContext';
 import { averageHealth } from '../../../shared/models/rules';
-import { firstNameOf } from '../model/greeting';
+import { firstNameOf } from '../../../shared/models/greeting';
 
 export function useDashboardViewModel() {
   const { user, history, sectors } = useApp();

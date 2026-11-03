@@ -6,13 +6,14 @@ import { RootStackParamList } from './types';
 import { LoginView } from '../features/auth/view/LoginView';
 import { ReportDetailView } from '../features/reports/view/ReportDetailView';
 import { MainTabs } from './MainTabs';
+import { AdminTabs } from './AdminTabs';
 import { useRootViewModel } from '../features/auth/viewmodel/useRootViewModel';
 import { colors } from '../shared/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { isLoggedIn, isLoading } = useRootViewModel();
+  const { isLoggedIn, isAdmin, isLoading } = useRootViewModel();
 
   if (isLoading) {
     return (
@@ -25,7 +26,10 @@ export function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
+        {isLoggedIn && isAdmin ? (
+          // Administrador: área própria, com as telas de gestão.
+          <Stack.Screen name="AdminMain" component={AdminTabs} />
+        ) : isLoggedIn ? (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="ReportDetail" component={ReportDetailView} />

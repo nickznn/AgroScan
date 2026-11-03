@@ -157,7 +157,8 @@ function describeError(err: unknown, path: string): ApiError {
   return new ApiError(err instanceof Error ? err.message : 'Erro inesperado');
 }
 
-async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+// Usado também pela API de administração (adminApi.ts), para compartilhar endereço, token e tratamento de erro.
+export async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   const config: AxiosRequestConfig = { url: path, method: options.method ?? 'GET', data: options.body };
   try {
     const response = await http.request<T>(config);
