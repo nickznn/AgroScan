@@ -16,7 +16,7 @@
   },
   "include": [
     "*.ts",
-    "../src/**/*.test.ts",
-    "../src/shared/models/fixtures.ts"
+    "../frontend/src/**/*.test.ts",
+    "../frontend/src/shared/models/fixtures.ts"
   ]
 }

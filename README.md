@@ -10,6 +10,18 @@ O AgroScan transforma o smartphone do produtor rural em um sensor inteligente: e
 
 O app (`/`) é um cliente React Native/Expo que fala com uma **API própria** (`/backend`) via HTTP — autenticação, histórico de detecções, setores e ordens de serviço são todos persistidos em um banco SQLite no servidor. A análise de IA em si ainda é **simulada no backend** (sorteia uma praga de um catálogo) — o objetivo atual é validar a experiência completa (app + API + persistência real), não o modelo de visão computacional.
 
+## Frontend e backend (dois projetos separados)
+
+O repositório tem **dois projetos independentes**, cada um com o seu `package.json`, as suas dependências e o seu README:
+
+| Pasta | O que é | Tecnologia |
+|---|---|---|
+| [`frontend/`](./frontend) | O aplicativo de celular (telas, navegação, estado, chamadas à API) | Expo, React Native, TypeScript, axios |
+| [`backend/`](./backend) | A API (login, dados, fotos, banco) | Node, Express, SQLite, TypeScript |
+| `scripts/` | Lançador que sobe os dois juntos (`npm run dev`), diagnóstico e verificações | TypeScript |
+| `docs/` | Guias e roteiros em PDF | |
+
+O app só conhece a API pelo endereço HTTP (`frontend/src/shared/services/client.ts`); o backend não importa nada do frontend. Dá para rodar um sem o outro.
 ## Funcionalidades
 
 - **Login/Cadastro** — autenticação real (JWT) contra a API, senha com hash (bcrypt)
@@ -135,7 +147,7 @@ tem o Visual Studio. Fixar a versão evita esse problema.
 
 ## Arquitetura (MVVM por funcionalidade)
 
-O app segue o padrão **MVVM** (Model, View, ViewModel) e está **organizado por funcionalidade**: cada recurso do app tem a sua própria pasta, com as três camadas dentro.
+O app (`frontend/src`) segue o padrão **MVVM** (Model, View, ViewModel) e está **organizado por funcionalidade**: cada recurso do app tem a sua própria pasta, com as três camadas dentro.
 
 ```
 View  --usa-->  ViewModel  --usa-->  Model / Services
@@ -160,36 +172,31 @@ chama o login do estado compartilhado, que usa o `shared/services/client.ts` (ax
 ## Estrutura do projeto
 
 ```
-src/
-  features/                 Uma pasta por funcionalidade
-    auth/                   view/LoginView  viewmodel/useLoginViewModel, useRootViewModel  model/credentials
-    dashboard/              view/DashboardView  viewmodel/useDashboardViewModel  model/greeting
-    scanner/                view/ScannerView  viewmodel/useScannerViewModel
-    reports/                view/HistoryView, ReportDetailView  viewmodel/...  model/detectionRules
-    map/                    view/MapView  viewmodel/useMapViewModel  model/mapLayout, mapRules
-    farm/                   view/FarmView  viewmodel/useFarmViewModel  model/farm
-    orders/                 view/OrdersView  viewmodel/useOrdersViewModel  model/orderRules
-    profile/                view/ProfileView  viewmodel/useProfileViewModel
-    settings/               view/SettingsView  viewmodel/useSettingsViewModel  model/offlineAreas
-    more/                   view/MoreMenuView  viewmodel/useMoreMenuViewModel
-  shared/
-    components/             Botões, cards, badges reutilizáveis
-    models/                 Tipos (index.ts) e regras comuns (rules.ts) + testes
-    services/               client.ts (axios) e media.ts (câmera/galeria)
-    state/                  AppContext: estado carregado da API, usado pelos ViewModels
-    theme/ utils/           Cores, tipografia e helpers de formatação
-  navigation/               Bottom tabs + stacks (monta as Views de cada funcionalidade)
+AgroScan/
+  frontend/                     O APP (Expo + React Native + TypeScript)
+    App.tsx  index.ts  app.json
+    src/
+      features/                 Uma pasta por funcionalidade (view, viewmodel, model)
+        auth/ dashboard/ scanner/ reports/ map/ farm/ orders/ profile/ settings/ more/
+      shared/
+        components/             Botões, cards, badges reutilizáveis
+        models/                 Tipos (index.ts) e regras comuns (rules.ts) + testes
+        services/               client.ts (axios) e media.ts (câmera/galeria)
+        state/                  AppContext: estado carregado da API, usado pelos ViewModels
+        theme/ utils/           Cores, tipografia e helpers de formatação
+      navigation/               Bottom tabs + stacks (monta as Views de cada funcionalidade)
 
-backend/ (TypeScript)
-  src/
-    index.ts        Setup do Express
-    db.ts           Conexão SQLite + schema das tabelas
-    seed.ts         Catálogo de pragas e dados de exemplo para novos usuários
-    types.ts        Formato das linhas do banco
-    upload.ts       Configuração do multer
-    middleware/auth.ts  Verificação do JWT
-    routes/         Rotas: auth, detections, orders, sectors
-  scripts/          inspect-db.ts (ver o banco) e smoke.ts (teste da API)
+  backend/                      A API (Node + Express + SQLite + TypeScript)
+    src/
+      index.ts                  Setup do Express
+      db.ts  seed.ts  types.ts  Banco, dados de exemplo e formato das linhas
+      upload.ts                 Configuração do multer
+      middleware/auth.ts        Verificação do JWT
+      routes/                   auth, detections, orders, sectors
+    scripts/                    inspect-db.ts (ver o banco) e smoke.ts (teste da API)
 
-scripts/            Lançador do npm run dev / setup / doctor, run-tests.ts e check-architecture.ts (TypeScript)
+  scripts/                      Lançador (npm run dev / setup / doctor), run-tests.ts, check-architecture.ts
+  docs/                         Guias e roteiros em PDF
 ```
+
+Mais detalhes em [`frontend/README.md`](./frontend/README.md) e [`backend/README.md`](./backend/README.md).

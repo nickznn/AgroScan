@@ -6,7 +6,7 @@ import { ChildProcess, execSync, spawn } from 'child_process';
 import os from 'os';
 import path from 'path';
 import {
-  ROOT, BACKEND, API_PORT, METRO_PORT, c, ok, warn, fail, info,
+  ROOT, FRONTEND, BACKEND, API_PORT, METRO_PORT, c, ok, warn, fail, info,
   nodeStatus, hasDeps, sqliteStatus, resolveExpoCli, resolveBackendTsx, lanCandidates, pickLanIp,
   portInUse, isAgroscanApi, gitCommit, portHelp, firewallCheck,
 } from './lib';
@@ -102,9 +102,9 @@ async function doctor(): Promise<void> {
     problems++;
   }
 
-  const rootDeps = hasDeps(ROOT) && !!resolveExpoCli();
+  const rootDeps = hasDeps(FRONTEND) && !!resolveExpoCli();
   const backDeps = hasDeps(BACKEND) && !!resolveBackendTsx();
-  note('Dependências do app', rootDeps ? 'instaladas' : 'FALTAM  -> rode: npm run setup');
+  note('Dependências do frontend', rootDeps ? 'instaladas' : 'FALTAM  -> rode: npm run setup');
   note('Dependências do backend', backDeps ? 'instaladas' : 'FALTAM  -> rode: npm run setup');
   if (!rootDeps) problems++;
   if (!backDeps) problems++;
@@ -228,7 +228,7 @@ async function main(): Promise<void> {
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (ip) env.REACT_NATIVE_PACKAGER_HOSTNAME = ip;
-  const expo = spawn(process.execPath, [expoCli, 'start'], { cwd: ROOT, env, stdio: 'inherit' });
+  const expo = spawn(process.execPath, [expoCli, 'start'], { cwd: FRONTEND, env, stdio: 'inherit' });
   expo.on('exit', (code) => shutdown(code || 0));
   expo.on('error', (err) => {
     fail(`Não consegui iniciar o Expo: ${err.message}`);

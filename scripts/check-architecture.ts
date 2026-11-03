@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { c, fail, ok } from './lib';
 
-const SRC = path.join(__dirname, '..', 'src');
+const SRC = path.join(__dirname, '..', 'frontend', 'src');
 
 type Layer = 'View' | 'ViewModel' | 'Model';
 

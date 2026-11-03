@@ -1,10 +1,10 @@
-// npm test -> roda todos os arquivos *.test.ts de src/ (as regras de negócio de cada funcionalidade).
+// npm test -> roda todos os arquivos *.test.ts de frontend/src/ (as regras de negócio de cada funcionalidade).
 // Lista os arquivos aqui porque o Node 20 não entende "*" no comando de testes.
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const SRC = path.join(__dirname, '..', 'src');
+const SRC = path.join(__dirname, '..', 'frontend', 'src');
 
 function testFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -16,7 +16,7 @@ function testFiles(dir: string): string[] {
 
 const files = testFiles(SRC);
 if (files.length === 0) {
-  console.log('Nenhum teste encontrado em src/.');
+  console.log('Nenhum teste encontrado em frontend/src/.');
   process.exit(1);
 }
 

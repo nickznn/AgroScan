@@ -1,7 +1,7 @@
 // Garante que o computador está pronto: Node compatível, dependências instaladas, SQLite funcionando.
 // Usado por `npm run setup` e `npm run dev`.
 import {
-  ROOT, BACKEND, c, ok, warn, fail, info,
+  ROOT, FRONTEND, BACKEND, c, ok, warn, fail, info,
   nodeStatus, explainBadNode, run, hasDeps, removeNodeModules, sqliteStatus, resolveExpoCli, resolveBackendTsx,
 } from './lib';
 
@@ -36,16 +36,16 @@ export async function ensureEnvironment({ clean = false }: { clean?: boolean } =
   pathWarnings();
 
   if (clean) {
-    info('Removendo node_modules (raiz e backend) para instalar do zero...');
-    removeNodeModules(ROOT);
+    info('Removendo node_modules (frontend e backend) para instalar do zero...');
+    removeNodeModules(FRONTEND);
     removeNodeModules(BACKEND);
   }
 
-  if (!hasDeps(ROOT) || !resolveExpoCli()) {
-    info('Instalando as dependências do app (na primeira vez leva alguns minutos)...');
-    install(ROOT, 'o app');
+  if (!hasDeps(FRONTEND) || !resolveExpoCli()) {
+    info('Instalando as dependências do app (frontend; na primeira vez leva alguns minutos)...');
+    install(FRONTEND, 'o app (frontend)');
   }
-  ok('Dependências do app');
+  ok('Dependências do app (frontend)');
 
   if (!hasDeps(BACKEND) || !resolveBackendTsx()) {
     info('Instalando as dependências do backend...');

@@ -7,6 +7,7 @@ import os from 'os';
 import path from 'path';
 
 export const ROOT = path.join(__dirname, '..');
+export const FRONTEND = path.join(ROOT, 'frontend');
 export const BACKEND = path.join(ROOT, 'backend');
 export const API_PORT = 4000;
 export const METRO_PORT = 8081;
@@ -116,7 +117,7 @@ export function sqliteStatus(): SqliteStatus {
 
 export function resolveExpoCli(): string | null {
   try {
-    return require.resolve('expo/bin/cli', { paths: [ROOT] });
+    return require.resolve('expo/bin/cli', { paths: [FRONTEND] });
   } catch {
     return null;
   }
