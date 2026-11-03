@@ -3,6 +3,8 @@
 export type Severity = 'critical' | 'moderate' | 'low';
 export type OrderStatus = 'pending' | 'in_progress' | 'completed';
 
+export type Role = 'user' | 'admin';
+
 export interface UserRow {
   id: number;
   name: string;
@@ -12,6 +14,9 @@ export interface UserRow {
   created_at: number;
   avatar_url: string | null;
   farm_photo_url: string | null;
+  role: Role;
+  active: number;
+  last_login_at: number | null;
 }
 
 export interface PestRow {

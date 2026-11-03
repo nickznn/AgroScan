@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../db';
 import { seedForNewUser } from '../seed';
-import { requireAuth, JWT_SECRET } from '../middleware/auth';
+import { requireAuth, JWT_SECRET, SUSPENDED_MESSAGE } from '../middleware/auth';
 import { upload, absoluteUrl } from '../upload';
 import { UserRow } from '../types';
 
@@ -18,6 +18,7 @@ function toPublicUser(req: Request, row: UserRow) {
     createdAt: row.created_at,
     avatarUrl: absoluteUrl(req, row.avatar_url),
     farmPhotoUrl: absoluteUrl(req, row.farm_photo_url),
+    role: row.role,
   };
 }
 
@@ -69,6 +70,12 @@ router.post('/login', async (req, res) => {
     res.status(401).json({ error: 'E-mail ou senha incorretos' });
     return;
   }
+
+  if (!user.active) {
+    res.status(403).json({ error: SUSPENDED_MESSAGE });
+    return;
+  }
+  db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(Date.now(), user.id);
 
   res.json({ token: signToken(user.id), user: toPublicUser(req, user) });
 });

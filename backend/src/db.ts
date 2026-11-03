@@ -77,5 +77,30 @@ if (!userColumns.includes('avatar_url')) {
 if (!userColumns.includes('farm_photo_url')) {
   db.exec('ALTER TABLE users ADD COLUMN farm_photo_url TEXT');
 }
+// Perfil de administrador: papel do usuário, suspensão de conta e último acesso.
+if (!userColumns.includes('role')) {
+  db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'");
+}
+if (!userColumns.includes('active')) {
+  db.exec('ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
+}
+if (!userColumns.includes('last_login_at')) {
+  db.exec('ALTER TABLE users ADD COLUMN last_login_at INTEGER');
+}
+
+// Registro de auditoria das ações do administrador. Sem chave estrangeira de propósito: o histórico
+// continua existindo mesmo que o usuário que fez a ação (ou o alvo dela) seja apagado depois.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id INTEGER,
+    actor_email TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL DEFAULT '',
+    details TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_log(created_at);
+`);
 
 export default db;

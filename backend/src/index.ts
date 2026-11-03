@@ -4,12 +4,15 @@ import cors from 'cors';
 import path from 'path';
 
 import { seedPests } from './seed';
+import { ensureDefaultAdmin } from './adminSetup';
+import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
 import detectionRoutes from './routes/detections';
 import orderRoutes from './routes/orders';
 import sectorRoutes from './routes/sectors';
 
 seedPests();
+ensureDefaultAdmin();
 
 const app = express();
 app.use(cors());
@@ -24,6 +27,7 @@ app.use('/auth', authRoutes);
 app.use('/detections', detectionRoutes);
 app.use('/orders', orderRoutes);
 app.use('/sectors', sectorRoutes);
+app.use('/admin', adminRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });

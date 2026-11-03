@@ -84,10 +84,21 @@ function cleanup(): number {
       (f): f is string => !!f
     );
     db.prepare(`DELETE FROM users WHERE id IN (${marks})`).run(...ids);
+    db.prepare("DELETE FROM audit_log WHERE actor_email LIKE 'smoke%@agroscan.test'").run();
     for (const f of files) fs.rmSync(path.join(UPLOADS, path.basename(f)), { force: true });
     return users.length;
   } finally {
     if (db) db.close();
+  }
+}
+
+// Promove um usuário de teste a administrador direto no banco (o app não tem rota pública para isso, de propósito).
+function promoteToAdmin(email: string): void {
+  const db = new Database(DB_FILE, { fileMustExist: true });
+  try {
+    db.prepare("UPDATE users SET role = 'admin' WHERE email = ?").run(email);
+  } finally {
+    db.close();
   }
 }
 
@@ -213,6 +224,132 @@ async function run(): Promise<void> {
   check('usuario 2 so ve as 3 deteccoes dele', r.body.detections.length === 3);
   r = await api('/auth/me', { token: token2 });
   check('usuario 2 sem foto do usuario 1', r.body.user.avatarUrl === null);
+
+  console.log('> admin: acesso');
+  const adminEmail = `smokeadmin_${stamp}@agroscan.test`;
+  r = await api('/auth/register', { method: 'POST', json: { email: adminEmail, password: 'senha1234', farmName: 'Admin Smoke' } });
+  check('cadastro devolve role "user"', r.body?.user?.role === 'user');
+  promoteToAdmin(adminEmail);
+  r = await api('/auth/login', { method: 'POST', json: { email: adminEmail, password: 'senha1234' } });
+  const adminToken: string = r.body.token;
+  check('login do admin devolve role "admin"', r.body?.user?.role === 'admin');
+  r = await api('/admin/overview');
+  check('/admin sem token 401', r.status === 401);
+  r = await api('/admin/overview', { token });
+  check('usuario comum nao acessa /admin (403)', r.status === 403);
+  r = await api('/admin/users', { token });
+  check('usuario comum nao lista usuarios (403)', r.status === 403);
+  r = await api('/admin/pests', { method: 'POST', token, json: {} });
+  check('usuario comum nao cria praga (403)', r.status === 403);
+
+  console.log('> admin: painel');
+  r = await api('/admin/overview', { token: adminToken });
+  check('overview 200', r.status === 200);
+  check('overview: usuarios', r.body.users.total >= 4 && r.body.users.admins >= 1 && r.body.users.active + r.body.users.suspended === r.body.users.total);
+  check('overview: deteccoes por severidade', typeof r.body.detections.total === 'number' && ['critical', 'moderate', 'low'].every((k) => typeof r.body.detections.bySeverity[k] === 'number'));
+  check('overview: 7 dias', r.body.detections.last7Days.length === 7 && typeof r.body.detections.last7Days[6].count === 'number');
+  check('overview: ordens e pragas mais frequentes', typeof r.body.orders.pending === 'number' && r.body.topPests.length > 0);
+
+  console.log('> admin: usuarios');
+  r = await api(`/admin/users?search=${encodeURIComponent(`smoke${stamp}`)}`, { token: adminToken });
+  const me1 = r.body.users.find((u: { email: string }) => u.email === email);
+  check('lista de usuarios encontra pela busca', r.status === 200 && !!me1);
+  check('usuario traz contagens e nao vaza a senha', me1.detectionCount === 5 && me1.orderCount === 5 && !JSON.stringify(me1).includes('hash') && !JSON.stringify(me1).includes('password'));
+  const id1: number = me1.id;
+  const meAdmin = (await api('/auth/me', { token: adminToken })).body.user;
+
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: { active: false } });
+  check('suspender usuario 200', r.status === 200 && r.body.user.active === false);
+  r = await api('/auth/me', { token });
+  check('usuario suspenso perde o acesso na hora (403)', r.status === 403 && /suspensa/i.test(r.body.error));
+  r = await api('/auth/login', { method: 'POST', json: { email, password: 'senha1234' } });
+  check('usuario suspenso nao consegue entrar (403)', r.status === 403);
+  r = await api('/admin/users?status=suspended', { token: adminToken });
+  check('filtro de suspensos', r.body.users.some((u: { id: number }) => u.id === id1));
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: { active: true } });
+  check('reativar usuario 200', r.status === 200 && r.body.user.active === true);
+  r = await api('/auth/me', { token });
+  check('usuario reativado volta a acessar', r.status === 200);
+
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: { role: 'admin' } });
+  check('promover a admin 200', r.status === 200 && r.body.user.role === 'admin');
+  r = await api('/admin/overview', { token });
+  check('promovido passa a acessar /admin (200)', r.status === 200);
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: { role: 'user' } });
+  r = await api('/admin/overview', { token });
+  check('rebaixado perde o acesso a /admin (403)', r.status === 403);
+
+  r = await api(`/admin/users/${meAdmin.id}`, { method: 'PATCH', token: adminToken, json: { role: 'user' } });
+  check('admin nao altera o proprio papel (400)', r.status === 400);
+  r = await api(`/admin/users/${meAdmin.id}`, { method: 'PATCH', token: adminToken, json: { active: false } });
+  check('admin nao se suspende (400)', r.status === 400);
+  r = await api(`/admin/users/${meAdmin.id}`, { method: 'DELETE', token: adminToken });
+  check('admin nao se exclui (400)', r.status === 400);
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: { role: 'banana' } });
+  check('papel invalido (400)', r.status === 400);
+  r = await api(`/admin/users/${id1}`, { method: 'PATCH', token: adminToken, json: {} });
+  check('PATCH sem campos (400)', r.status === 400);
+  r = await api('/admin/users/999999', { method: 'PATCH', token: adminToken, json: { active: false } });
+  check('usuario inexistente (404)', r.status === 404);
+
+  console.log('> admin: ordens');
+  r = await api('/admin/orders', { token: adminToken });
+  const adminOrder = r.body.orders.find((o: { id: string }) => o.id === oid);
+  check('admin ve as ordens de todos (com e-mail do dono)', r.status === 200 && adminOrder?.userEmail === email);
+  r = await api(`/admin/orders/${oid}`, { method: 'PATCH', token: adminToken, json: { status: 'completed' } });
+  check('admin muda o status de qualquer ordem', r.status === 200 && r.body.order.status === 'completed');
+  r = await api(`/admin/orders/${oid}`, { method: 'PATCH', token: adminToken, json: { status: 'xxx' } });
+  check('status invalido (400)', r.status === 400);
+  r = await api('/admin/orders?status=completed', { token: adminToken });
+  check('filtro de ordens por status', r.body.orders.every((o: { status: string }) => o.status === 'completed') && r.body.orders.length > 0);
+  r = await api(`/admin/orders/${oid}`, { method: 'DELETE', token: adminToken });
+  check('admin apaga uma ordem', r.status === 200);
+  r = await api('/orders', { token });
+  check('a ordem apagada some para o dono', !r.body.orders.some((o: { id: string }) => o.id === oid));
+
+  console.log('> admin: catalogo de pragas');
+  const pestName = `Praga Smoke ${stamp}`;
+  const pestBody = { name: pestName, scientificName: 'Smokeus testus', crop: 'Soja', severity: 'moderate', description: 'Praga criada pelo teste.', recommendedAction: 'Nenhuma.', affectedAreaRange: [1, 4] };
+  r = await api('/admin/pests', { method: 'POST', token: adminToken, json: pestBody });
+  check('criar praga 201', r.status === 201 && r.body.pest.usage === 0);
+  const pestId: string = r.body.pest.id;
+  r = await api('/admin/pests', { method: 'POST', token: adminToken, json: pestBody });
+  check('praga repetida (409)', r.status === 409);
+  r = await api('/admin/pests', { method: 'POST', token: adminToken, json: { ...pestBody, name: 'Outra', severity: 'enorme' } });
+  check('severidade invalida (400)', r.status === 400);
+  r = await api('/admin/pests', { method: 'POST', token: adminToken, json: { ...pestBody, name: 'Outra', affectedAreaRange: [9, 2] } });
+  check('faixa de area invertida (400)', r.status === 400);
+  r = await api('/admin/pests', { method: 'POST', token: adminToken, json: { ...pestBody, name: 'Outra', crop: 'Banana' } });
+  check('cultura invalida (400)', r.status === 400);
+  r = await api(`/admin/pests/${pestId}`, { method: 'PATCH', token: adminToken, json: { description: 'Descricao nova.', severity: 'high' } });
+  check('severidade invalida no PATCH (400)', r.status === 400);
+  r = await api(`/admin/pests/${pestId}`, { method: 'PATCH', token: adminToken, json: { description: 'Descricao nova.', severity: 'critical' } });
+  check('editar praga 200', r.status === 200 && r.body.pest.description === 'Descricao nova.' && r.body.pest.severity === 'critical');
+  r = await api('/admin/pests', { token: adminToken });
+  check('catalogo lista a praga nova', r.body.pests.some((p: { id: string }) => p.id === pestId) && r.body.pests.length >= 7);
+  r = await api(`/admin/pests/${det.pest.id}`, { method: 'DELETE', token: adminToken });
+  check('nao apaga praga em uso (409)', r.status === 409);
+  r = await api(`/admin/pests/${pestId}`, { method: 'DELETE', token: adminToken });
+  check('apagar praga sem uso 200', r.status === 200);
+  r = await api(`/admin/pests/${pestId}`, { method: 'DELETE', token: adminToken });
+  check('apagar de novo (404)', r.status === 404);
+
+  console.log('> admin: auditoria e exclusao de usuario');
+  r = await api('/admin/audit', { token: adminToken });
+  const actions: string[] = r.body.entries.map((e: { action: string }) => e.action);
+  check('auditoria registra as acoes do admin', r.status === 200 && ['user.suspend', 'user.reactivate', 'user.promote', 'user.demote', 'order.status', 'order.delete', 'pest.create', 'pest.update', 'pest.delete'].every((a) => actions.includes(a)));
+  check('auditoria mostra quem fez', r.body.entries[0].actorEmail === adminEmail);
+  r = await api('/auth/register', { method: 'POST', json: { email: `smoke3_${stamp}@agroscan.test`, password: 'senha1234', farmName: 'Descartavel' } });
+  const token3: string = r.body.token;
+  const id3: number = r.body.user.id;
+  r = await api(`/admin/users/${id3}`, { method: 'DELETE', token: adminToken });
+  check('admin exclui um usuario 200', r.status === 200);
+  r = await api('/auth/me', { token: token3 });
+  check('token do usuario excluido deixa de valer (401)', r.status === 401);
+  r = await api(`/admin/users/${id3}`, { method: 'DELETE', token: adminToken });
+  check('excluir de novo (404)', r.status === 404);
+  r = await api('/admin/audit', { token: adminToken });
+  check('exclusao fica na auditoria', r.body.entries.some((e: { action: string }) => e.action === 'user.delete'));
 }
 
 (async () => {
