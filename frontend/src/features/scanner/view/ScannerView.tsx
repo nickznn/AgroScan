@@ -22,6 +22,8 @@ export function ScannerView() {
   const { photoUri, analyzing, stage, gps, enableGps, analyze, analyzeFromLibrary } = useScannerViewModel();
   const [facing, setFacing] = useState<CameraType>('back');
   const [torch, setTorch] = useState(false);
+  const [frameHeight, setFrameHeight] = useState(260);
+  const capturing = useRef(false);
 
   const showOutcome = (result: Result<string> | null) => {
     if (!result) return;
@@ -30,16 +32,21 @@ export function ScannerView() {
   };
 
   const takePhoto = async () => {
-    if (!cameraRef.current) return;
-    let uri: string | null = null;
+    if (!cameraRef.current || capturing.current) return; // ignora o segundo toque enquanto o primeiro está em andamento
+    capturing.current = true;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.6 });
-      uri = photo?.uri ?? null;
-    } catch {
-      // sem foto: a análise segue assim mesmo, como antes
+      let uri: string | null = null;
+      try {
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.6 });
+        uri = photo?.uri ?? null;
+      } catch {
+        // sem foto: a análise segue assim mesmo, como antes
+      }
+      setTorch(false);
+      showOutcome(await analyze(uri));
+    } finally {
+      capturing.current = false;
     }
-    setTorch(false);
-    showOutcome(await analyze(uri));
   };
 
   const pickFromLibrary = async () => showOutcome(await analyzeFromLibrary());
@@ -79,12 +86,12 @@ export function ScannerView() {
           </Pressable>
         </View>
 
-        <View style={styles.frame} pointerEvents="none">
+        <View style={styles.frame} pointerEvents="none" onLayout={(e) => setFrameHeight(e.nativeEvent.layout.height)}>
           <View style={[styles.corner, styles.cornerTL]} />
           <View style={[styles.corner, styles.cornerTR]} />
           <View style={[styles.corner, styles.cornerBL]} />
           <View style={[styles.corner, styles.cornerBR]} />
-          <ScanLine />
+          <ScanLine travel={frameHeight} />
           <Text style={styles.frameHint}>Centralize a folha no quadro</Text>
         </View>
 
@@ -124,7 +131,7 @@ export function ScannerView() {
 }
 
 // Linha que varre o quadro de cima a baixo enquanto a câmera está aberta.
-function ScanLine() {
+function ScanLine({ travel }: { travel: number }) {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -138,7 +145,7 @@ function ScanLine() {
     return () => loop.stop();
   }, [progress]);
 
-  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [0, 260] });
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
   return <Animated.View style={[styles.scanLine, { transform: [{ translateY }] }]} />;
 }
 
