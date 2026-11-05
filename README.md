@@ -34,20 +34,27 @@ e acesse http://localhost:5500.
 
 ## Publicado em
 
-**https://nickznn.github.io/AgroScan/** (GitHub Pages, a partir da branch `gh-pages`, que contém só esta pasta).
+**https://nickznn.github.io/AgroScan/** (GitHub Pages, a partir da branch `gh-pages`).
 
 ## Atualizar o site publicado
 
-Depois de editar algo em `website/`, na raiz do repositório:
+Na raiz do repositório:
 
 ```bash
-git add website
-git commit -m "Update the website"
-git push origin master
-git subtree push --prefix website origin gh-pages
+npm run site:deploy
 ```
 
-A página atualiza em cerca de um minuto. Tudo o que está em `website/` fica público, inclusive nomes e e-mail do `config.js`.
+O comando gera a versão web do app (`frontend/`), junta com esta pasta e publica na branch `gh-pages` (site em `/` e app em `/app/`). A página atualiza em cerca de 1 minuto. Tudo o que está em `website/` fica público, inclusive nomes e e-mail do `config.js`.
+
+## Dia da apresentação (QR Code do app)
+
+O app web precisa de uma API acessível pela internet. Na raiz do repositório:
+
+```bash
+npm run demo
+```
+
+O comando sobe a API em modo público (banco separado `backend/data/demo.db`, sem a conta de admin de demonstração, com limite de tentativas de login), abre um túnel HTTPS gratuito e mostra (e copia) o link do site já com o QR Code apontando para o app. Mantenha a janela aberta durante a apresentação: o endereço do túnel muda a cada execução e, se a janela fechar, o app para.
 
 ## Créditos
 
