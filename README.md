@@ -32,9 +32,22 @@ e acesse http://localhost:5500.
 - `assets/logo.svg`: marca do site.
 - Fotos da equipe: coloque em `assets/team/` e aponte em `config.js`.
 
-## Publicar
+## Publicado em
 
-Como o site é estático, funciona em qualquer hospedagem de arquivos (GitHub Pages, Netlify, Vercel). Publicar é uma ação que cria uma página pública: só faça quando a equipe aprovar o conteúdo.
+**https://nickznn.github.io/AgroScan/** (GitHub Pages, a partir da branch `gh-pages`, que contém só esta pasta).
+
+## Atualizar o site publicado
+
+Depois de editar algo em `website/`, na raiz do repositório:
+
+```bash
+git add website
+git commit -m "Update the website"
+git push origin master
+git subtree push --prefix website origin gh-pages
+```
+
+A página atualiza em cerca de um minuto. Tudo o que está em `website/` fica público, inclusive nomes e e-mail do `config.js`.
 
 ## Créditos
 
