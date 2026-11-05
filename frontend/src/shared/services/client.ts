@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { File } from 'expo-file-system';
 import { Coords, DetectionResult, ServiceOrder, Sector, User, Crop } from '../models';
 
@@ -63,7 +63,19 @@ export async function isReachable(url: string, timeoutMs = 2500): Promise<boolea
   }
 }
 
+// Na versão web, o link do QR Code leva o endereço da API em ?api=https://... (o túnel da apresentação muda a cada vez).
+function apiUrlFromLocation(): string | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('api')?.trim().replace(/\/+$/, '');
+  return raw && /^https?:\/\/.+/i.test(raw) ? raw : null;
+}
+
 async function resolveApiUrl(): Promise<string> {
+  const fromLink = apiUrlFromLocation();
+  if (fromLink) {
+    await AsyncStorage.setItem(API_URL_KEY, fromLink);
+    return fromLink;
+  }
   const stored = await AsyncStorage.getItem(API_URL_KEY);
   const detected = detectDevServerUrl();
 
@@ -204,10 +216,16 @@ export async function logout() {
   await setToken(null);
 }
 
+// Coloca a foto no formulário. No celular ela é um arquivo (classe File, exigida desde o SDK 57); na web a câmera
+// e a galeria entregam um endereço blob:/data:, que o fetch converte em Blob.
+async function appendPhoto(form: FormData, uri: string, filename: string) {
+  const photo = Platform.OS === 'web' ? await (await fetch(uri)).blob() : new File(uri);
+  form.append('photo', photo, filename);
+}
+
 async function uploadUserPhoto(path: string, photoUri: string) {
   const form = new FormData();
-  const file = new File(photoUri);
-  form.append('photo', file, 'photo.jpg');
+  await appendPhoto(form, photoUri, 'photo.jpg');
   const data = await request<{ user: User }>(path, { method: 'POST', body: form });
   return data.user;
 }
@@ -232,12 +250,9 @@ export async function createDetection(photoUri: string | null, coords: Coords | 
     form.append('latitude', String(coords.latitude));
     form.append('longitude', String(coords.longitude));
   }
-  if (photoUri) {
-    // SDK 57: FormData precisa de um Blob de verdade (via a classe File), não mais de
-    // um objeto {uri, name, type} solto — isso agora dá "Unsupported FormDataPart implementation".
-    const file = new File(photoUri);
-    form.append('photo', file, 'scan.jpg');
-  }
+  // SDK 57: FormData precisa de um Blob de verdade, não mais de um objeto {uri, name, type} solto
+  // — isso dá "Unsupported FormDataPart implementation".
+  if (photoUri) await appendPhoto(form, photoUri, 'scan.jpg');
   const data = await request<{ detection: DetectionResult }>('/detections', {
     method: 'POST',
     body: form,

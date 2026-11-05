@@ -24,7 +24,7 @@ npm install
 npm start
 ```
 
-O banco é um arquivo local (`data/agroscan.db`, fora do git) e as fotos ficam em `uploads/`. Variáveis opcionais: `PORT` (padrão 4000), `DB_PATH` (outro arquivo de banco), `JWT_SECRET` (chave do token; em produção, defina uma chave longa e secreta).
+O banco é um arquivo local (`data/agroscan.db`, fora do git) e as fotos ficam em `uploads/`. Variáveis opcionais: `PORT` (padrão 4000), `DB_PATH` (outro arquivo de banco), `JWT_SECRET` (chave do token; em produção, defina uma chave longa e secreta), `AGROSCAN_PUBLIC=1` (modo apresentação: confia no proxy do túnel e limita tentativas de login e envio de fotos; o `npm run demo` da raiz já liga isso).
 
 ## Comandos desta pasta
 

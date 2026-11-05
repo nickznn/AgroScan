@@ -47,7 +47,7 @@ export function GeoMap({ points, region, selectedId, onSelect }: GeoMapProps) {
 
       <View style={styles.note} pointerEvents="none">
         <MaterialIcons name="smartphone" size={14} color="#fff" />
-        <Text style={[typography.bodySm, { color: '#fff', marginLeft: 6 }]}>Prévia na web — o mapa de satélite abre no app do celular</Text>
+        <Text style={[typography.bodySm, { color: '#fff', marginLeft: 6 }]}>Prévia no navegador: o mapa de satélite fica no app instalado</Text>
       </View>
     </Pressable>
   );

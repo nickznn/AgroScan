@@ -5,6 +5,7 @@ import path from 'path';
 
 import { seedPests } from './seed';
 import { ensureDefaultAdmin } from './adminSetup';
+import { rateLimit } from './middleware/rateLimit';
 import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
 import detectionRoutes from './routes/detections';
@@ -17,6 +18,13 @@ ensureDefaultAdmin();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Modo apresentação (npm run demo): a API fica exposta por um túnel, então atrás de um proxy e com limite de tentativas.
+if (process.env.AGROSCAN_PUBLIC === '1') {
+  app.set('trust proxy', 1);
+  app.use(['/auth/login', '/auth/register'], rateLimit(20, 60_000));
+  app.use('/detections', rateLimit(30, 60_000, ['POST']));
+}
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', (_req, res) => {
