@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgroScan · Do campo ao mapa</title>
+  <meta name="description" content="O AgroScan transforma o celular do produtor rural em um sensor: fotografe a planta, receba o diagnóstico e veja o foco no mapa, no ponto exato da lavoura.">
+  <meta name="theme-color" content="#003527">
+  <meta property="og:title" content="AgroScan · Do campo ao mapa">
+  <meta property="og:description" content="Fotografe a planta, receba o diagnóstico e veja o foco no mapa.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" fill="#064e3b"/>
+    <path d="M18 24v-6a2 2 0 012-2h6M38 16h6a2 2 0 012 2v6M46 40v6a2 2 0 01-2 2h-6M26 48h-6a2 2 0 01-2-2v-6" fill="none" stroke="#95d3ba" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M32 44c-8-3-11-10-9-18 8 0 14 3 16 10 .8 3-.4 6-3 7.5" fill="#95d3ba"/>
+    <path d="M32 44c1-6 4-10 8-13" fill="none" stroke="#064e3b" stroke-width="2.2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="AgroScan, início"><svg class="brand-logo"><use href="#logo"/></svg><span>AgroScan</span><small class="slogan" data-slogan></small></a>
+    <nav class="links" id="links" aria-label="Seções">
+      <a href="#problema">O problema</a>
+      <a href="#como">Como funciona</a>
+      <a href="#recursos">Recursos</a>
+      <a href="#equipe">Quem somos</a>
+      <a href="#contato">Contato</a>
+    </nav>
+    <a class="btn btn-sm btn-light" href="#app">Testar o app</a>
+    <button class="burger" id="burger" aria-label="Abrir menu" aria-expanded="false" aria-controls="links"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ================================================= HERO -->
+  <section class="hero">
+    <div class="wrap hero-in">
+      <div class="hero-copy reveal">
+        <p class="kicker">Monitoramento de pragas com GPS</p>
+        <h1>Veja a praga antes que ela vire <em>prejuízo</em>.</h1>
+        <p class="lead">O AgroScan transforma o celular do produtor em um sensor de campo: fotografe a planta, receba o diagnóstico e veja o foco no mapa, no ponto exato da lavoura.</p>
+        <div class="cta-row">
+          <a class="btn btn-mint" href="#app">Testar o app agora</a>
+          <a class="btn btn-ghost" href="#como">Ver como funciona</a>
+        </div>
+        <ul class="chips" aria-label="Destaques">
+          <li>Protótipo funcional</li><li>GPS em cada scan</li><li>Mapa de satélite</li><li>Área do administrador</li>
+        </ul>
+      </div>
+      <div class="hero-art reveal" aria-hidden="true">
+        <img class="phone p-back" src="assets/phone-scanner.png" alt="" width="410" height="840">
+        <img class="phone p-front" src="assets/phone-map.png" alt="" width="410" height="840">
+        <div class="float f1"><b>Lagarta-do-cartucho</b><span>Crítico · 98% de confiança</span></div>
+        <div class="float f2"><i></i> GPS ativo</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= PROBLEMA -->
+  <section class="sec" id="problema">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="kicker dark">O problema</p>
+        <h2>O monitoramento da lavoura ainda depende de olho e de papel</h2>
+        <p class="sub">Descobrir uma praga cedo e saber exatamente onde ela está é o que separa uma aplicação pontual de um prejuízo na safra.</p>
+      </header>
+      <div class="grid3">
+        <article class="card reveal">
+          <div class="ico-box"><svg viewBox="0 0 24 24"><path d="M13 4a2 2 0 100 .01M7 21l3-7 3 2v5M10 14l-1-4 5-1 2 3 3 1M9 10L6 12"/></svg></div>
+          <h3>Vistoria a pé</h3>
+          <p>Percorrer cada talhão e anotar à mão consome horas e deixa focos passarem despercebidos.</p>
+        </article>
+        <article class="card reveal">
+          <div class="ico-box"><svg viewBox="0 0 24 24"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><path d="M4 4l16 16"/></svg></div>
+          <h3>Registro sem localização</h3>
+          <p>Sem saber onde a praga está, a aplicação acaba cobrindo a área inteira em vez de tratar só o foco.</p>
+        </article>
+        <article class="card reveal">
+          <div class="ico-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <h3>Decisão tardia</h3>
+          <p>Quando o problema é percebido a olho nu, a perda muitas vezes já começou.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= SOLUÇÃO -->
+  <section class="sec sec-dark" id="solucao">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="kicker">A solução</p>
+        <h2>Três passos do campo à decisão</h2>
+      </header>
+      <ol class="steps">
+        <li class="reveal"><span class="num">1</span><h3>Fotografe</h3><p>Aponte a câmera para a folha. O app envia a foto e a posição do aparelho.</p></li>
+        <li class="reveal"><span class="num">2</span><h3>Localize</h3><p>O foco entra no mapa de satélite, colorido pela severidade, com uma mancha proporcional à área afetada.</p></li>
+        <li class="reveal"><span class="num">3</span><h3>Aja</h3><p>Receba a ação recomendada e gere a ordem de serviço para a aplicação localizada.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================================================= COMO FUNCIONA -->
+  <section class="sec" id="como">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="kicker dark">Como funciona</p>
+        <h2>Conheça as telas do app</h2>
+        <p class="sub">Imagens ilustrativas com dados de demonstração.</p>
+      </header>
+
+      <div class="feature reveal">
+        <img class="phone shot" src="assets/phone-scanner.png" alt="Tela do scanner com GPS ativo" loading="lazy" width="410" height="840">
+        <div class="feature-text">
+          <span class="tag">Scanner</span>
+          <h3>Câmera com GPS ativo</h3>
+          <p>Cada foto guarda a latitude e a longitude do aparelho. Sem GPS o scan continua, e o app avisa que aquele foco ficou sem localização.</p>
+          <ul><li>Linha de varredura, lanterna e troca de câmera</li><li>Etapas reais do envio: localização e análise</li><li>Também aceita fotos da galeria</li></ul>
+        </div>
+      </div>
+
+      <div class="feature flip reveal">
+        <img class="phone shot" src="assets/phone-map.png" alt="Tela do mapa com focos coloridos" loading="lazy" width="410" height="840">
+        <div class="feature-text">
+          <span class="tag">Mapa</span>
+          <h3>Focos no lugar exato</h3>
+          <p>Mapa de satélite com um marcador por foco, colorido pela severidade, e uma mancha de calor cujo tamanho acompanha a área afetada.</p>
+          <ul><li>Filtro por cultura</li><li>Legenda e contagem por severidade</li><li>Toque no foco para abrir o relatório</li></ul>
+        </div>
+      </div>
+
+      <div class="feature reveal">
+        <img class="phone shot" src="assets/phone-report.png" alt="Tela do relatório de uma praga" loading="lazy" width="410" height="840">
+        <div class="feature-text">
+          <span class="tag">Relatório</span>
+          <h3>Diagnóstico e ação recomendada</h3>
+          <p>Praga, severidade, confiança, área afetada, estágio e a localização do foco, com um botão que leva direto ao mapa.</p>
+          <ul><li>Cartão de localização com coordenadas</li><li>Botão “Ver no mapa”</li><li>Gera a ordem de serviço em um toque</li></ul>
+        </div>
+      </div>
+
+      <div class="feature flip reveal">
+        <img class="phone shot" src="assets/phone-admin.png" alt="Painel do administrador" loading="lazy" width="410" height="840">
+        <div class="feature-text">
+          <span class="tag tag-admin">Administrador</span>
+          <h3>Visão geral e controle</h3>
+          <p>O administrador tem telas e ações exclusivas: painel com indicadores, gestão de usuários, catálogo de pragas, ordens de todos e registro de auditoria.</p>
+          <ul><li>Promover, suspender e excluir contas</li><li>Cadastrar e editar pragas</li><li>Permissões conferidas no servidor, não só escondidas na tela</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= RECURSOS -->
+  <section class="sec sec-soft" id="recursos">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="kicker dark">Recursos</p>
+        <h2>Tudo o que o produtor precisa em um só app</h2>
+      </header>
+      <div class="grid3">
+        <article class="card reveal"><h3>Scanner com GPS</h3><p>Foto e localização no mesmo gesto, com ou sem internet para a câmera.</p></article>
+        <article class="card reveal"><h3>Mapa de satélite</h3><p>Focos por severidade, manchas de calor e filtro por cultura.</p></article>
+        <article class="card reveal"><h3>Histórico e relatórios</h3><p>Busca e filtros por severidade para acompanhar a evolução de cada foco.</p></article>
+        <article class="card reveal"><h3>Ordens de serviço</h3><p>Da detecção à aplicação: crie ordens e acompanhe o status até a conclusão.</p></article>
+        <article class="card reveal"><h3>Minha fazenda</h3><p>Setores, culturas e saúde da lavoura em um resumo na tela inicial.</p></article>
+        <article class="card reveal"><h3>Conta segura</h3><p>Senha com hash, sessão por token e dados separados por usuário.</p></article>
+      </div>
+
+      <div class="status reveal">
+        <div>
+          <h3>O que já funciona hoje</h3>
+          <ul class="ticks">
+            <li>Cadastro, login e perfil com foto</li>
+            <li>Scan com foto e GPS gravados no servidor</li>
+            <li>Mapa, histórico, relatórios e ordens de serviço</li>
+            <li>Área do administrador completa</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Próximos passos</h3>
+          <ul class="ticks next">
+            <li><b>Modelo de IA real:</b> hoje o diagnóstico é simulado no servidor; o ponto de troca já existe</li>
+            <li>Funcionamento sem internet, com sincronização</li>
+            <li>Alertas quando um foco crítico é registrado</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= EQUIPE -->
+  <section class="sec" id="equipe">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="kicker dark">Quem somos</p>
+        <h2>Estudantes construindo tecnologia para o campo</h2>
+        <p class="sub">O AgroScan nasceu como projeto acadêmico: um protótipo funcional, do aplicativo ao servidor.</p>
+      </header>
+      <div class="team" id="team"></div>
+    </div>
+  </section>
+
+  <!-- ================================================= APP / QR -->
+  <section class="sec sec-dark app" id="app">
+    <div class="wrap app-in">
+      <div class="reveal">
+        <p class="kicker">Protótipo</p>
+        <h2>Teste o AgroScan agora</h2>
+        <p class="lead">Aponte a câmera do celular para o QR Code. O app abre direto, em Android ou iPhone, sem instalar nada.</p>
+        <ol class="howto">
+          <li>Abra a câmera do celular e aponte para o QR Code.</li>
+          <li>Toque no link que aparecer.</li>
+          <li>Crie uma conta (leva segundos) e faça um scan de teste.</li>
+        </ol>
+        <p class="small" id="app-note"></p>
+      </div>
+      <div class="qr-card reveal">
+        <div class="qr-box" id="qr" role="img" aria-label="QR Code para abrir o app"></div>
+        <p class="qr-url" id="qr-url"></p>
+        <div class="qr-actions">
+          <a class="btn btn-mint btn-sm" id="open-app" href="#" target="_blank" rel="noopener">Abrir no navegador</a>
+          <button class="btn btn-ghost btn-sm" id="copy-app" type="button">Copiar link</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= CONTATO -->
+  <section class="sec sec-soft" id="contato">
+    <div class="wrap contact">
+      <div class="reveal">
+        <p class="kicker dark">Contato</p>
+        <h2>Vamos conversar?</h2>
+        <p class="sub">Quer saber mais, dar feedback ou propor uma parceria? Fale com a gente.</p>
+        <ul class="contact-list" id="contact-list"></ul>
+      </div>
+      <form class="card form reveal" id="contact-form" novalidate>
+        <label>Seu nome<input name="nome" type="text" autocomplete="name" required></label>
+        <label>Seu e-mail<input name="email" type="email" autocomplete="email" required></label>
+        <label>Mensagem<textarea name="msg" rows="4" required></textarea></label>
+        <button class="btn btn-primary" type="submit">Enviar mensagem</button>
+        <p class="small" id="form-note">Abre o seu aplicativo de e-mail com a mensagem pronta.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <a class="brand" href="#top"><svg class="brand-logo"><use href="#logo"/></svg><span>AgroScan</span></a>
+    <p><b class="foot-slogan" data-slogan></b><br>Protótipo acadêmico · React Native · TypeScript · Node · SQLite</p>
+    <p><a id="repo-link" href="#" target="_blank" rel="noopener">Código no GitHub</a> · <span id="year"></span></p>
+  </div>
+</footer>
+
+<script src="vendor/qrcode.js"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
